@@ -1,7 +1,7 @@
 /** GuidedCityTour shared config - no secrets. */
-export const APP_VERSION = "v2.1.1";
+export const APP_VERSION = "v2.1.2";
 export const APP_VERSION_DATE = "2026-07-31";
-export const PIPELINE_VERSION = "2.1.1";
+export const PIPELINE_VERSION = "2.1.2";
 
 export const DEFAULT_MAP = { lat: 48.8566, lng: 2.3522, zoom: 13 };
 
@@ -20,6 +20,15 @@ export const NOMINATIM_HEADERS = {
 /** ~700 m walking-radius box for nearby Nominatim lookups */
 export const NEARBY_DELTA_DEG = 0.0065;
 export const NEARBY_MAX_M = 700;
+
+/**
+ * Prefer named tourist/landmark POIs within this radius of a map click
+ * over bare highway/road reverse-geocode results.
+ */
+export const LANDMARK_RADIUS_M = 150;
+/** Minimum score (type weight minus distance penalty) to auto-select a landmark */
+export const LANDMARK_HIGH_CONFIDENCE_SCORE = 55;
+export const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 
 export const NEARBY_ALLOWED_CLASSES = {
   historic: true,

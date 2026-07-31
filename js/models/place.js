@@ -73,6 +73,16 @@ export function inferEntityType(address = {}, focusKind = "") {
   if (leisure === "track" || leisure === "path" || tourism === "trail") {
     return ENTITY_TYPES.TRAIL;
   }
+  if (
+    leisure === "stadium" ||
+    building === "stadium" ||
+    leisure === "sports_centre" ||
+    leisure === "park" ||
+    leisure === "garden" ||
+    focusKind === "landmark"
+  ) {
+    return ENTITY_TYPES.LANDMARK;
+  }
   if (focusKind === "house" || building) return ENTITY_TYPES.BUILDING;
   if (focusKind === "place") return ENTITY_TYPES.PLACE;
   return ENTITY_TYPES.UNKNOWN;

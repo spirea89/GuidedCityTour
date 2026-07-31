@@ -101,6 +101,18 @@ export class PromptBuilder {
             .join("\n");
 
     const focus = place.focus || {};
+    const landmarkNote =
+      focus.kind === "landmark"
+        ? "\nIMPORTANT: The selected focus is a named landmark/POI (" +
+          (focus.label || place.name) +
+          "). Research and narrate THIS landmark - not a nearby street or house number, " +
+          "unless the user explicitly chose street/house focus.\n" +
+          (focus.type || focus.class
+            ? "OSM type: " +
+              [focus.class, focus.type].filter(Boolean).join("/") +
+              "\n"
+            : "")
+        : "";
     return (
       "Place context (OpenStreetMap / Nominatim - identity source):\n" +
       JSON.stringify(placeToJson(place), null, 2) +
@@ -108,7 +120,8 @@ export class PromptBuilder {
       (focus.kind || "place") +
       " - " +
       (focus.label || place.name) +
-      "\n\nNearby allow-list (ONLY these may be called nearby):\n" +
+      landmarkNote +
+      "\nNearby allow-list (ONLY these may be called nearby):\n" +
       nearbyText +
       "\n\nCategories: " +
       categories.join(", ") +

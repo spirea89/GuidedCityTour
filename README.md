@@ -4,7 +4,7 @@ A static map app for exploring locations and generating **grounded** guided-tour
 
 **Live site:** [https://spirea89.github.io/GuidedCityTour/](https://spirea89.github.io/GuidedCityTour/)
 
-**On-page version:** look for **`v2.1.1`** in the header badge and side-panel footer. After a deploy, hard-refresh if the version does not match - GitHub Pages can serve a cached older build briefly.
+**On-page version:** look for **`v2.1.2`** in the header badge and side-panel footer. After a deploy, hard-refresh if the version does not match - GitHub Pages can serve a cached older build briefly.
 
 ## Architecture (v2.1)
 
@@ -27,7 +27,7 @@ Client modules live under `js/services/` (`BuildingIdentifier` / `PlaceIdentifie
 - Nominatim place search and reverse geocoding
 - Optional browser geolocation (“Use my location”)
 - Side panel: Google Maps embed, coordinates, Street View / Maps links
-- Story focus: house/building, street, or neighbourhood/area
+- Story focus: landmark (stadium, museum, church, ...), house/building, street, or neighbourhood/area
 - Topic toggles: History, Architecture, Personalities, Interesting facts, Today + **Kids mode**
 - Grounded tour generation (Responses + web_search when the browser allows it)
 - **Degraded path:** if web research is blocked (CORS / API), the app **refuses to invent history**
@@ -65,7 +65,7 @@ Stories need an [OpenAI API key](https://platform.openai.com/api-keys).
 
 1. Push to GitHub `main`.
 2. **Settings → Pages** → Deploy from branch `main` / `(root)`.
-3. Confirm live badge shows `v2.1.1` (hard-refresh if needed).
+3. Confirm live badge shows `v2.1.2` (hard-refresh if needed).
 
 ES modules require `http://` or `https://` (not always `file://`). Serve locally with any static server if needed.
 

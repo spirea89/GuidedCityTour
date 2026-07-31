@@ -57,6 +57,7 @@ export class PlaceIdentifier {
       address.historic ||
       address.amenity ||
       address.building ||
+      address.leisure ||
       "";
 
     if (input.confirmedCandidate && input.confirmedCandidate.name) {
@@ -67,6 +68,22 @@ export class PlaceIdentifier {
           inferEntityType(address, focus.kind),
         confidence: 0.95,
         reason: "Confirmed by user",
+      });
+    }
+
+    // Named tourist / landmark POI near the click (stadium, museum, church, ...)
+    if (focus.kind === "landmark" && focus.label) {
+      const landmarkAddress = Object.assign({}, address, focus.osmTags || {});
+      candidates.push({
+        name: String(focus.label),
+        entity_type:
+          focus.entityHint ||
+          inferEntityType(landmarkAddress, "landmark"),
+        confidence: 0.92,
+        reason:
+          "Named landmark near click (OSM" +
+          (focus.type ? ": " + focus.type : "") +
+          ")",
       });
     }
 
@@ -95,7 +112,7 @@ export class PlaceIdentifier {
       });
     }
 
-    if (focus.label) {
+    if (focus.label && focus.kind !== "landmark") {
       const exists = candidates.some(
         (c) => c.name.toLowerCase() === String(focus.label).toLowerCase()
       );
@@ -144,6 +161,22 @@ export class PlaceIdentifier {
       status = ambiguous ? STATUS.AMBIGUOUS_NAME : STATUS.NEEDS_CONFIRMATION;
     }
 
+    const placeAddress =
+      focus.kind === "landmark" && focus.osmTags
+        ? Object.assign({}, address, {
+            leisure: focus.osmTags.leisure || address.leisure,
+            tourism: focus.osmTags.tourism || address.tourism,
+            historic: focus.osmTags.historic || address.historic,
+            amenity: focus.osmTags.amenity || address.amenity,
+            building: focus.osmTags.building || address.building,
+            sport: focus.osmTags.sport || address.sport,
+            wikipedia: focus.osmTags.wikipedia || address.wikipedia,
+            wikidata: focus.osmTags.wikidata || address.wikidata,
+            landmark_name: focus.label || best.name,
+            landmark_type: focus.type || focus.osmTags.leisure || "",
+          })
+        : address;
+
     const place = createPlace({
       id:
         "osm:" +
@@ -155,10 +188,10 @@ export class PlaceIdentifier {
       name: best ? best.name : "",
       entityType: best
         ? best.entity_type
-        : inferEntityType(address, focus.kind),
+        : inferEntityType(placeAddress, focus.kind),
       lat: input.lat,
       lng: input.lng,
-      address,
+      address: placeAddress,
       displayName: input.displayName || (best && best.name) || "",
       identificationConfidence: confidence,
       candidates: uniq,

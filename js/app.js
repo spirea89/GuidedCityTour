@@ -20,6 +20,13 @@ import {
 } from "./config.js";
 import { TourPipeline } from "./services/TourPipeline.js";
 import { StoryRenderer } from "./ui/storyRenderer.js";
+import {
+  fetchNearbyLandmarks,
+  landmarkFromNominatimHit,
+  pickPreferredLandmark,
+  mergeLandmarkIntoAddress,
+  isLandmarkClassType,
+} from "./services/LandmarkFinder.js";
 
 const map = L.map("map", { zoomControl: true }).setView(
   [DEFAULT_MAP.lat, DEFAULT_MAP.lng],
@@ -558,9 +565,10 @@ function updateGenerateButton() {
   }
 }
 
-function showLocation(lat, lng, label) {
+function showLocation(lat, lng, label, options) {
   const latNum = Number(lat);
   const lngNum = Number(lng);
+  const opts = options || {};
 
   if (marker) marker.setLatLng([latNum, lngNum]);
   else marker = L.marker([latNum, lngNum]).addTo(map);
@@ -609,19 +617,20 @@ function showLocation(lat, lng, label) {
     focus: null,
     options: [],
     nearbyPlaces: [],
+    preferredLandmark: opts.preferredLandmark || null,
   };
 
   els.focusOptions.innerHTML = "";
   els.focusConfirm.classList.remove("visible");
   els.focusConfirm.textContent = "";
-  els.reverseStatus.textContent = "Looking up address...";
+  els.reverseStatus.textContent = "Looking up place...";
   els.reverseStatus.classList.remove("error");
   clearStory();
   updateGenerateButton();
-  reverseGeocode(latNum, lngNum, label);
+  reverseGeocode(latNum, lngNum, label, opts.preferredLandmark || null);
 }
 
-function buildFocusOptions(address, displayName) {
+function buildFocusOptions(address, displayName, landmark, highConfidence) {
   const options = [];
   const road =
     address.road ||
@@ -644,6 +653,22 @@ function buildFocusOptions(address, displayName) {
     address.municipality ||
     address.county ||
     "";
+
+  if (landmark && landmark.name && highConfidence) {
+    options.push({
+      id: "landmark",
+      title: "This landmark",
+      detail:
+        landmark.name +
+        (landmark.typeLabel ? " (" + landmark.typeLabel + ")" : ""),
+      label: landmark.name,
+      kind: "landmark",
+      entityHint: landmark.entityType || "",
+      osmTags: landmark.osmTags || {},
+      type: landmark.type || "",
+      class: landmark.class || "",
+    });
+  }
 
   if (house && road) {
     options.push({
@@ -680,6 +705,32 @@ function buildFocusOptions(address, displayName) {
       kind: "area",
     });
   }
+
+  // Low-confidence named POI: still offer it, but after street/house
+  if (landmark && landmark.name && !highConfidence) {
+    const already = options.some(
+      (o) =>
+        o.kind === "landmark" &&
+        o.label.toLowerCase() === landmark.name.toLowerCase()
+    );
+    if (!already) {
+      options.push({
+        id: "landmark",
+        title: "Nearby landmark",
+        detail:
+          landmark.name +
+          (landmark.typeLabel ? " (" + landmark.typeLabel + ")" : "") +
+          (landmark.dist_m != null ? " ~" + landmark.dist_m + " m" : ""),
+        label: landmark.name,
+        kind: "landmark",
+        entityHint: landmark.entityType || "",
+        osmTags: landmark.osmTags || {},
+        type: landmark.type || "",
+        class: landmark.class || "",
+      });
+    }
+  }
+
   if (!options.length && displayName) {
     options.push({
       id: "place",
@@ -744,6 +795,10 @@ function selectFocus(opt) {
   currentSelection.focus = opt;
   els.focusConfirm.textContent = "Selected: " + opt.label;
   els.focusConfirm.classList.add("visible");
+  if (opt.kind === "landmark" && opt.label) {
+    els.placeName.textContent = opt.label;
+    els.placeName.hidden = false;
+  }
   clearStory();
   updateGenerateButton();
 }
@@ -828,22 +883,38 @@ async function fetchNearbyPlaces(lat, lng, areaHint, signal) {
   }
 }
 
-async function reverseGeocode(lat, lng, fallbackLabel) {
+async function reverseGeocode(lat, lng, fallbackLabel, preferredLandmark) {
   if (reverseAbort) reverseAbort.abort();
   reverseAbort = new AbortController();
+  const signal = reverseAbort.signal;
   try {
-    const url =
+    const reverseUrl =
       "https://nominatim.openstreetmap.org/reverse?lat=" +
       encodeURIComponent(lat) +
       "&lon=" +
       encodeURIComponent(lng) +
-      "&format=json&addressdetails=1&zoom=18";
-    const res = await fetch(url, {
+      "&format=json&addressdetails=1&extratags=1&namedetails=1&zoom=18";
+
+    const reversePromise = fetch(reverseUrl, {
       headers: NOMINATIM_HEADERS,
-      signal: reverseAbort.signal,
+      signal,
+    }).then(async (res) => {
+      if (!res.ok) throw new Error("Reverse geocode failed");
+      return res.json();
     });
-    if (!res.ok) throw new Error("Reverse geocode failed");
-    const data = await res.json();
+
+    const landmarksPromise = fetchNearbyLandmarks(lat, lng, signal).catch(
+      (err) => {
+        if (err && err.name === "AbortError") throw err;
+        return [];
+      }
+    );
+
+    const [data, nearbyLandmarks] = await Promise.all([
+      reversePromise,
+      landmarksPromise,
+    ]);
+
     if (
       !currentSelection ||
       currentSelection.lat !== lat ||
@@ -851,15 +922,53 @@ async function reverseGeocode(lat, lng, fallbackLabel) {
     ) {
       return;
     }
-    const address = data.address || {};
-    const displayName = data.display_name || fallbackLabel || "";
-    currentSelection.address = address;
-    currentSelection.displayName = displayName;
-    if (displayName) {
+
+    let address = data.address || {};
+    let displayName = data.display_name || fallbackLabel || "";
+
+    const fromReverse = landmarkFromNominatimHit(data, lat, lng);
+    const preferred =
+      preferredLandmark ||
+      (currentSelection && currentSelection.preferredLandmark) ||
+      null;
+    const candidates = nearbyLandmarks.slice();
+    if (fromReverse) candidates.push(fromReverse);
+    const picked = pickPreferredLandmark(candidates, preferred);
+    const landmark = picked.highConfidence
+      ? picked.best
+      : preferred && preferred.name
+        ? preferred
+        : picked.best;
+    const preferredMatch =
+      !!(
+        preferred &&
+        preferred.name &&
+        landmark &&
+        landmark.name &&
+        landmark.name.toLowerCase() === preferred.name.toLowerCase()
+      );
+    const highConfidence = picked.highConfidence || preferredMatch;
+
+    if (landmark && highConfidence) {
+      address = mergeLandmarkIntoAddress(address, landmark);
+      displayName = landmark.displayName || landmark.name || displayName;
+      els.placeName.textContent = landmark.name;
+      els.placeName.hidden = false;
+    } else if (displayName) {
       els.placeName.textContent = displayName;
       els.placeName.hidden = false;
     }
-    const options = buildFocusOptions(address, displayName);
+
+    currentSelection.address = address;
+    currentSelection.displayName = displayName;
+    currentSelection.landmark = landmark || null;
+
+    const options = buildFocusOptions(
+      address,
+      displayName,
+      landmark,
+      highConfidence
+    );
     currentSelection.options = options;
     els.reverseStatus.textContent = "";
     renderFocusOptions(options);
@@ -869,7 +978,14 @@ async function reverseGeocode(lat, lng, fallbackLabel) {
       "Could not look up address. You can still pick a focus from coordinates.";
     els.reverseStatus.classList.add("error");
     if (!currentSelection) return;
-    const options = buildFocusOptions({}, fallbackLabel || "");
+    const preferred =
+      preferredLandmark || currentSelection.preferredLandmark || null;
+    const options = buildFocusOptions(
+      {},
+      fallbackLabel || "",
+      preferred,
+      !!(preferred && preferred.name)
+    );
     currentSelection.options = options;
     renderFocusOptions(options);
   }
@@ -1051,7 +1167,7 @@ els.form.addEventListener("submit", async (e) => {
     const url =
       "https://nominatim.openstreetmap.org/search?q=" +
       encodeURIComponent(q) +
-      "&format=json&addressdetails=1&limit=1";
+      "&format=json&addressdetails=1&extratags=1&namedetails=1&limit=1";
     const res = await fetch(url, { headers: NOMINATIM_HEADERS });
     if (!res.ok) throw new Error("Geocoder request failed");
     const data = await res.json();
@@ -1062,8 +1178,13 @@ els.form.addEventListener("submit", async (e) => {
     const hit = data[0];
     const lat = parseFloat(hit.lat);
     const lng = parseFloat(hit.lon);
+    const preferredLandmark = isLandmarkClassType(hit.class, hit.type)
+      ? landmarkFromNominatimHit(hit, lat, lng)
+      : null;
     map.flyTo([lat, lng], 15, { duration: 1.2 });
-    showLocation(lat, lng, hit.display_name);
+    showLocation(lat, lng, hit.display_name, {
+      preferredLandmark: preferredLandmark,
+    });
     setStatus("");
   } catch (_) {
     setStatus("Search failed. Try again.", true);
