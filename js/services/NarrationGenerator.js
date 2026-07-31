@@ -36,9 +36,9 @@ export class NarrationGenerator {
     if (status === STATUS.NO_HISTORY || !claims.verified.length) {
       const n = emptyNarration();
       n.adult =
-        "Standing here at "" +
+        'Standing here at "' +
         (place.name || "this location") +
-        "", I do not yet have well-sourced historical claims to share. " +
+        '", I do not yet have well-sourced historical claims to share. ' +
         "Map data identifies the place, but authoritative sources did not yield " +
         "verified history for this exact pin. I will not invent one.";
       if (kidsMode) {
@@ -147,9 +147,9 @@ function finalizeNarration(seed, claims, kidsMode) {
 function buildUnavailableNarration(place) {
   const n = emptyNarration();
   n.adult =
-    "Map identity: "" +
+    'Map identity: "' +
     (place.name || "unnamed location") +
-    "". Web research was unavailable, so no verified historical narration is offered.";
+    '". Web research was unavailable, so no verified historical narration is offered.';
   n.kids =
     "We can see this place on the map, but we could not check real history online - so no made-up story.";
   return n;

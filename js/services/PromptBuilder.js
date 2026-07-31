@@ -17,10 +17,10 @@ export class PromptBuilder {
       "  Prefer primary or official pages over blogs, forums, and travel listicles.\n\n" +
       "HARD RULES\n" +
       "1. Never invent dates, people, events, architectural attributions, or nearby landmarks.\n" +
-      "2. "Nearby / adjacent / a short walk" ONLY for names on the OSM allow-list " +
+      '2. "Nearby / adjacent / a short walk" ONLY for names on the OSM allow-list ' +
       "(or the selected road / neighbourhood / city fields).\n" +
       "3. Adult narration may use verified claims freely, and may include a clearly " +
-      "labeled "Legends & local stories" section only from claims.legends.\n" +
+      'labeled "Legends & local stories" section only from claims.legends.\n' +
       "4. Kids narration: verified claims only; simpler language; no invented stories.\n" +
       "5. Write ALL narration text in English (narration.adult, narration.kids, " +
       "narration.sections, and any spoken guide text), regardless of the place's " +

@@ -188,9 +188,9 @@ export class ResearchService {
         },
         narration: {
           adult:
-            "I can see this place on the map as "" +
+            'I can see this place on the map as "' +
             (place.name || "an unnamed location") +
-            "", but I could not run web research from this browser, so I will not invent a history for it. " +
+            '", but I could not run web research from this browser, so I will not invent a history for it. ' +
             WEB_SEARCH_UNAVAILABLE_HINT,
           kids:
             "We found this place on the map, but we could not safely check real history online right now - so we will not make a story up.",
