@@ -25,7 +25,7 @@ function osmClientHeaders() {
     typeof navigator !== "undefined" ? String(navigator.userAgent || "") : "";
   if (!ua || /node\.js/i.test(ua)) {
     headers["User-Agent"] =
-      "GuidedCityTour/2.1.3 (https://github.com/spirea89/GuidedCityTour)";
+      "GuidedCityTour/2.1.4 (https://github.com/spirea89/GuidedCityTour)";
   }
   return headers;
 }

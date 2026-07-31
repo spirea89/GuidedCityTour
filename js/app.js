@@ -154,14 +154,52 @@ function speechSupported() {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }
 
+/**
+ * Strip URLs, markdown links, and citation/source sections from narration
+ * before TTS. Displayed story text can still show citations; only spoken text
+ * is cleaned so the audio guide does not read "https" or reference lists aloud.
+ */
 function cleanSpokenText(raw) {
   if (!raw) return "";
   let text = String(raw);
+
+  // Drop Sources / Citations / References blocks and everything after.
+  text = text.replace(
+    /\n\s*(?:#{1,6}\s*)?(?:sources?|citations?|references?|further reading|bibliography)\s*:?\s*\n[\s\S]*$/i,
+    "\n"
+  );
+  // Same headings when they appear mid-string without a leading newline.
+  text = text.replace(
+    /(?:^|\n)\s*(?:#{1,6}\s*)?(?:sources?|citations?|references?|further reading|bibliography)\s*:?\s*$/gim,
+    ""
+  );
+
+  // Markdown links: keep visible label, drop URL.
+  text = text.replace(/\[([^\]]+)\]\((?:https?:\/\/|www\.)[^)]+\)/gi, "$1");
+  text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+
+  // Full URLs (with or without scheme).
+  text = text.replace(/https?:\/\/[^\s<>\[\]()"'`]+/gi, " ");
+  text = text.replace(/\bwww\.[^\s<>\[\]()"'`]+/gi, " ");
+
+  // Bare citation-style domains on their own line (e.g. en.wikipedia.org/wiki/...).
+  text = text.replace(
+    /(?:^|\n)\s*[-\u2022*]?\s*(?:[a-z0-9-]+\.)+(?:com|org|net|edu|gov|io|uk|fr|de|eu|info)(?:\/[^\s]*)?\s*(?=\n|$)/gim,
+    "\n"
+  );
+
+  // Inline bare domains that look like leftover citations (path present).
+  text = text.replace(
+    /\b(?:[a-z0-9-]+\.)+(?:com|org|net|edu|gov|io)\/[^\s<>\[\]()"'`,;]+/gi,
+    " "
+  );
+
   text = text.replace(/\*\*([^*]+)\*\*/g, "$1");
   text = text.replace(/\*([^*]+)\*/g, "$1");
   text = text.replace(/^#{1,6}\s+/gm, "");
   text = text.replace(/^[-*\u2022]\s+/gm, "");
   text = text.replace(/[ \t]+\n/g, "\n");
+  text = text.replace(/[ \t]{2,}/g, " ");
   text = text.replace(/\n{3,}/g, "\n\n");
   return text.trim();
 }
