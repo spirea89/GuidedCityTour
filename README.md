@@ -4,7 +4,7 @@ A static single-page map app for exploring locations and generating short guided
 
 **Live site:** [https://spirea89.github.io/GuidedCityTour/](https://spirea89.github.io/GuidedCityTour/)
 
-**On-page version:** look for `v1.3.0` in the header badge and side-panel footer (`GuidedCityTour v1.3.0 · …`). After a deploy, hard-refresh if the version does not match the latest commit notes — GitHub Pages can serve a cached older build briefly.
+**On-page version:** look for `v1.5.0` in the header badge and side-panel footer (`GuidedCityTour v1.5.0 · …`). After a deploy, hard-refresh if the version does not match the latest commit notes — GitHub Pages can serve a cached older build briefly.
 
 ## Features
 
@@ -13,7 +13,7 @@ A static single-page map app for exploring locations and generating short guided
 - Optional browser geolocation (“Use my location”) with a distinct “you are here” marker
 - Side panel: Google Maps embed, coordinates, Street View / Maps links
 - Choose story focus: house/building, street, or neighbourhood/area
-- Generate a history-focused guided-tour story via OpenAI (`gpt-4o-mini`) using **your** API key
+- Generate a vivid guided-tour story via OpenAI (`gpt-4o` by default; optional `gpt-4o-mini` economy) using **your** API key
 - **Listen** to the story with browser text-to-speech (Web Speech API) — Listen / Pause / Stop; no extra TTS key required
 - Mobile-responsive layout (panel stacks under the map on narrow screens)
 
@@ -23,8 +23,9 @@ Stories need an [OpenAI API key](https://platform.openai.com/api-keys).
 
 1. Open the live site (or local `index.html`).
 2. Paste your key in the **API key** dialog (also available anytime from the header).
-3. The key is stored only in **`localStorage`** in your browser.
-4. It is sent **only to OpenAI** when you click **Generate story** — never to this GitHub Pages site.
+3. Choose **Quality (gpt-4o)** (default) or **Economy (gpt-4o-mini)** for cheaper/faster stories.
+4. The key and model choice are stored only in **`localStorage`** in your browser.
+5. The key is sent **only to OpenAI** when you click **Generate story** — never to this GitHub Pages site.
 
 You can update or clear the key anytime. Without a key, **Generate story** stays disabled.
 
@@ -66,5 +67,5 @@ OpenAI’s Chat Completions API generally allows browser requests with a user-su
 
 - Leaflet + OpenStreetMap tiles
 - Nominatim (search + reverse)
-- OpenAI Chat Completions (`gpt-4o-mini`) from the client
+- OpenAI Chat Completions (`gpt-4o` / optional `gpt-4o-mini`) from the client
 - Web Speech API (`speechSynthesis`) for optional story narration

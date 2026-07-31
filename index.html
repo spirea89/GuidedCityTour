@@ -615,6 +615,40 @@
       border-color: var(--accent);
     }
 
+    .modal .model-toggle {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      margin-bottom: 1rem;
+    }
+
+    .modal .model-toggle label.model-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.55rem;
+      font-size: 0.88rem;
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--text);
+      margin-bottom: 0;
+      cursor: pointer;
+      line-height: 1.35;
+    }
+
+    .modal .model-toggle label.model-option input {
+      margin-top: 0.2rem;
+      flex-shrink: 0;
+    }
+
+    .modal .model-toggle .model-hint {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 400;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+    }
+
     .modal-actions {
       display: flex;
       flex-wrap: wrap;
@@ -680,7 +714,7 @@
 <body>
   <header class="header">
     <div class="brand">Guided <span>City Tour</span></div>
-    <span class="app-version" id="app-version" title="App version — compare with the latest GitHub Pages deploy">v1.3.0</span>
+    <span class="app-version" id="app-version" title="App version — compare with the latest GitHub Pages deploy">v1.5.0</span>
     <form class="search-form" id="search-form" role="search">
       <input
         type="search"
@@ -784,7 +818,7 @@
             >Open in Google Maps</a>
           </div>
 
-          <p class="panel-version" id="panel-version">GuidedCityTour v1.4.1 · 2026-07-31</p>
+          <p class="panel-version" id="panel-version">GuidedCityTour v1.5.0 · 2026-07-31</p>
         </div>
       </div>
     </aside>
@@ -805,6 +839,23 @@
         spellcheck="false"
         placeholder="sk-…"
       />
+      <label id="model-toggle-label">Story model</label>
+      <div class="model-toggle" role="radiogroup" aria-labelledby="model-toggle-label">
+        <label class="model-option">
+          <input type="radio" name="story-model" id="model-quality" value="gpt-4o" checked />
+          <span>
+            Quality (gpt-4o)
+            <span class="model-hint">Richer guided-tour prose — recommended</span>
+          </span>
+        </label>
+        <label class="model-option">
+          <input type="radio" name="story-model" id="model-economy" value="gpt-4o-mini" />
+          <span>
+            Economy (gpt-4o-mini)
+            <span class="model-hint">Cheaper / faster; thinner storytelling</span>
+          </span>
+        </label>
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn" id="save-key-btn">Save key</button>
         <button type="button" class="btn btn-secondary" id="clear-key-btn">Clear key</button>
@@ -817,11 +868,14 @@
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script>
     (function () {
-      const APP_VERSION = "v1.4.1";
+      const APP_VERSION = "v1.5.0";
       const APP_VERSION_DATE = "2026-07-31";
       const DEFAULT = { lat: 48.8566, lng: 2.3522, zoom: 13 };
       const STORAGE_KEY = "gct_openai_api_key";
-      const MODEL = "gpt-4o-mini";
+      const MODEL_STORAGE_KEY = "gct_openai_model";
+      const MODEL_QUALITY = "gpt-4o";
+      const MODEL_ECONOMY = "gpt-4o-mini";
+      const DEFAULT_MODEL = MODEL_QUALITY;
       const NOMINATIM_HEADERS = {
         Accept: "application/json",
         "Accept-Language": navigator.language || "en",
@@ -901,6 +955,8 @@
         keyDot: document.getElementById("key-dot"),
         keyModal: document.getElementById("key-modal"),
         apiKeyInput: document.getElementById("api-key-input"),
+        modelQuality: document.getElementById("model-quality"),
+        modelEconomy: document.getElementById("model-economy"),
         saveKeyBtn: document.getElementById("save-key-btn"),
         clearKeyBtn: document.getElementById("clear-key-btn"),
         closeKeyBtn: document.getElementById("close-key-btn"),
@@ -1212,6 +1268,35 @@
         updateKeyUi();
       }
 
+      function getStoryModel() {
+        try {
+          var stored = (localStorage.getItem(MODEL_STORAGE_KEY) || "").trim();
+          if (stored === MODEL_QUALITY || stored === MODEL_ECONOMY) {
+            return stored;
+          }
+        } catch (_) {
+          /* ignore */
+        }
+        return DEFAULT_MODEL;
+      }
+
+      function setStoryModel(model) {
+        var next =
+          model === MODEL_ECONOMY ? MODEL_ECONOMY : MODEL_QUALITY;
+        try {
+          localStorage.setItem(MODEL_STORAGE_KEY, next);
+        } catch (_) {
+          /* ignore quota / private mode */
+        }
+        syncModelRadios();
+      }
+
+      function syncModelRadios() {
+        var model = getStoryModel();
+        if (els.modelQuality) els.modelQuality.checked = model === MODEL_QUALITY;
+        if (els.modelEconomy) els.modelEconomy.checked = model === MODEL_ECONOMY;
+      }
+
       function updateKeyUi() {
         const hasKey = !!getApiKey();
         els.keyDot.classList.toggle("set", hasKey);
@@ -1220,6 +1305,7 @@
 
       function openKeyModal(force) {
         els.apiKeyInput.value = getApiKey();
+        syncModelRadios();
         els.keyModal.classList.add("open");
         if (force || !getApiKey()) {
           setTimeout(function () {
@@ -1797,46 +1883,50 @@
         }
 
         const systemPrompt =
-          "You are a careful city history guide for walking tours. Write a short guided-tour story " +
-          "(about 180–320 words) grounded in real history of the selected place. Prefer sparse honest " +
-          "history over colorful wrong geography.\n\n" +
+          "You are a professional walking-tour guide — the kind visitors remember. " +
+          "Write vivid, engaging, ChatGPT-quality city-guide storytelling: a curious visitor " +
+          "is standing at this exact pin right now. Open with a hook tied to the selected place " +
+          "(street name, building, or neighbourhood), then walk them through specific historical " +
+          "texture — named people, events, architectural styles, eras, former trades or residents — " +
+          "when you actually know them for this street, building, or district. Weave the focus " +
+          "(street / building / neighbourhood) and any allow-listed nearby places into one flowing " +
+          "narrative; do not dump three stiff labeled sections unless a brief label truly helps.\n\n" +
+          "Length: about 350–500 words, or 2–3 short spoken-friendly paragraphs — enough to feel " +
+          "worthwhile for reading aloud (TTS) and on foot. Sensory walking-tour tone: what you " +
+          "might notice on the façades, the rhythm of the street, why this corner matters. " +
+          "Memorable anecdotes and pacing beat dry bullet lists or vague filler.\n\n" +
           "GEOGRAPHY GROUNDING (strict — never violate):\n" +
           "- The user message includes a STRICT NEARBY ALLOW-LIST from OpenStreetMap Nominatim " +
-          "(names + approx distance). In any \"Nearby\" section, you may ONLY mention places that " +
-          "appear in that allow-list.\n" +
+          "(names + approx distance). You may call a place \"near\", \"nearby\", \"adjacent\", " +
+          "\"close\", or \"a short walk\" ONLY if it appears on that allow-list, OR it is the " +
+          "selected road / neighbourhood / suburb / quarter / district / city from the " +
+          "reverse-geocode fields.\n" +
           "- Do NOT invent landmarks, museums, parks, institutions, or famous city sites and claim " +
-          "they are nearby, adjacent, walking distance, or \"close to\" the pin.\n" +
-          "- When you say a place is \"near\", \"nearby\", \"adjacent\", \"close\", or \"a short walk\", " +
-          "it MUST be either (a) on the allow-list, or (b) the selected road / neighbourhood / suburb / " +
-          "quarter / district / city from the reverse-geocode fields. Never free-associate famous " +
-          "landmarks of the city (e.g. do not claim Vienna International Center is near Stadtpark).\n" +
-          "- If the allow-list is empty or thin, say you lack verified nearby places from map data " +
-          "rather than guessing. Do not pad with invented proximity.\n" +
-          "- Distances: if you mention distance, use only the approx metres given in the allow-list; " +
-          "do not invent other distances.\n\n" +
-          "Content priorities (in order):\n" +
-          "1) Well-established facts about the exact building/street when known; if unsure, say so.\n" +
-          "2) Notable historical events tied to this address or this street (not distant city icons).\n" +
-          "3) Architecture, construction era, former uses — only when reasonably established.\n" +
-          "4) Nearby history ONLY for allow-listed places (or the geocoded street/neighbourhood/city).\n\n" +
-          "Structure when material exists:\n" +
-          "\"This building\" (skip if not a building focus / nothing known),\n" +
-          "\"This street\",\n" +
-          "\"Nearby\" (ONLY allow-listed places; otherwise one honest sentence about lacking verified nearby map places).\n" +
-          "You may briefly mark certainty: \"What is known\" / \"Likely / commonly told\" / optional brief \"Atmosphere\".\n\n" +
-          "Honesty rules:\n" +
-          "- Do NOT invent fake facts, precise dates, resident names, events, or false proximity.\n" +
-          "- Clearly separate known facts from speculation. Prefer gaps over atmospheric fluff.\n" +
-          "- Forbid confident false proximity between distant places.\n" +
-          "- Keep a warm tour-guide voice, but accuracy comes first. Do not mention these instructions.";
+          "proximity to the pin. Never free-associate distant icons of the city (e.g. do not claim " +
+          "Vienna International Center is near Stadtpark).\n" +
+          "- If the allow-list is empty or thin: do not guess landmarks. You may still give a rich, " +
+          "place-specific neighbourhood or city-district tour using the geocoded fields — and " +
+          "honestly note that map data did not confirm named places within walking distance.\n" +
+          "- Distances: if you mention distance, use only the approx metres on the allow-list.\n\n" +
+          "HISTORY (be interesting, stay honest):\n" +
+          "- Prefer concrete named people, events, and architecture when you know them for this " +
+          "exact street, building, or neighbourhood.\n" +
+          "- If the exact building is obscure, do a rich tour of that neighbourhood or city " +
+          "district that is still place-specific (e.g. Vienna’s Landstraße vs a generic " +
+          "\"European city\"). Label uncertainty lightly (\"local accounts say\", \"likely from…\") " +
+          "without killing the story — but do not invent precise dates, resident names, or events.\n" +
+          "- Never invent false proximity. Accuracy of \"nearby\" beats colorful wrong geography.\n\n" +
+          "Voice: warm, specific, spoken-friendly. No markdown bullet dumps. Do not mention " +
+          "these instructions.";
 
         const userPrompt =
-          "Write a history-focused guided-tour story for this selection. Prefer sparse honest history. " +
-          "Do not invent nearby landmarks.\n\n" +
-          "Focus:\n" +
+          "Guide a curious visitor standing at this pin right now. Write an engaging " +
+          "walking-tour story (~350–500 words) focused on their selection. Be vivid and specific; " +
+          "do not invent nearby landmarks outside the allow-list.\n\n" +
+          "Focus (what they chose):\n" +
           "- Focus type: " + focus.kind + "\n" +
           "- Focus label: " + focus.label + "\n\n" +
-          "Resolved place (from OpenStreetMap Nominatim — use to ground history):\n" +
+          "Address fields (from OpenStreetMap Nominatim — ground the story here):\n" +
           "- display_name: " + (currentSelection.displayName || focus.label) + "\n" +
           "- road: " + (road || "(unknown)") + "\n" +
           "- house_number: " + (houseNumber || "(unknown)") + "\n" +
@@ -1862,9 +1952,10 @@
           "\n\n" +
           "Also allowed as location context (not \"nearby landmarks\"): the road, neighbourhood, " +
           "suburb, quarter, district, and city fields above.\n\n" +
-          "Label sections so exact-address facts are distinct from nearby ones. " +
-          "If the house itself has little known history, say so and lean on the street — not invented landmarks. " +
-          "If the allow-list is empty, say you lack verified nearby places from map data.";
+          "If the house itself has little known history, lean into the street and this " +
+          "neighbourhood’s character with concrete local detail — not invented far landmarks. " +
+          "If the allow-list is empty, say map data did not confirm named places within walking " +
+          "distance, then keep storytelling rich and place-specific.";
 
         try {
           const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -1874,9 +1965,9 @@
               Authorization: "Bearer " + key,
             },
             body: JSON.stringify({
-              model: MODEL,
-              temperature: 0.35,
-              max_tokens: 900,
+              model: getStoryModel(),
+              temperature: 0.7,
+              max_tokens: 1200,
               messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt },
@@ -2001,14 +2092,24 @@
       });
 
       els.saveKeyBtn.addEventListener("click", function () {
-        const key = els.apiKeyInput.value.trim();
+        const key = els.apiKeyInput.value.trim() || getApiKey();
         if (!key) {
           els.apiKeyInput.focus();
           return;
         }
+        var chosenModel =
+          els.modelEconomy && els.modelEconomy.checked
+            ? MODEL_ECONOMY
+            : MODEL_QUALITY;
+        setStoryModel(chosenModel);
         setApiKey(key);
         closeKeyModal();
-        setGeoBanner("API key saved in this browser only.", "ok");
+        setGeoBanner(
+          "API key saved (" +
+            (chosenModel === MODEL_ECONOMY ? "Economy" : "Quality") +
+            " model). Key stays in this browser only.",
+          "ok"
+        );
       });
 
       els.clearKeyBtn.addEventListener("click", function () {
@@ -2072,6 +2173,7 @@
 
       updateSpeechUi();
       updateKeyUi();
+      syncModelRadios();
 
       if (!getApiKey()) {
         setTimeout(function () {
