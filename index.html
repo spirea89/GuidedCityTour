@@ -69,6 +69,19 @@
       color: var(--accent);
     }
 
+    .app-version {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.2rem 0.55rem;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
     .search-form {
       display: flex;
       flex: 1;
@@ -436,6 +449,47 @@
       display: block;
     }
 
+    .speech-controls {
+      display: none;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .speech-controls.visible {
+      display: flex;
+    }
+
+    .speech-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+
+    .speech-buttons .btn {
+      flex: 1;
+      min-width: 5.5rem;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .speech-hint {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .speech-hint.pulse {
+      color: var(--accent);
+    }
+
+    .panel-version {
+      margin-top: auto;
+      padding-top: 0.75rem;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      letter-spacing: 0.03em;
+    }
+
     .actions {
       display: flex;
       flex-direction: column;
@@ -619,6 +673,7 @@
 <body>
   <header class="header">
     <div class="brand">Guided <span>City Tour</span></div>
+    <span class="app-version" id="app-version" title="App version — compare with the latest GitHub Pages deploy">v1.3.0</span>
     <form class="search-form" id="search-form" role="search">
       <input
         type="search"
@@ -693,6 +748,14 @@
             <p class="story-loading" id="story-loading">Researching history for this place…</p>
             <p class="story-error" id="story-error" role="alert"></p>
             <div class="story-text" id="story-text" hidden></div>
+            <div class="speech-controls" id="speech-controls" aria-label="Story narration">
+              <div class="speech-buttons">
+                <button type="button" class="btn" id="speech-play-btn" disabled>Listen</button>
+                <button type="button" class="btn btn-secondary" id="speech-pause-btn" disabled>Pause</button>
+                <button type="button" class="btn btn-ghost" id="speech-stop-btn" disabled>Stop</button>
+              </div>
+              <p class="speech-hint" id="speech-hint">Tap Listen for a guided narration</p>
+            </div>
           </div>
 
           <div class="actions">
@@ -712,6 +775,8 @@
               rel="noopener noreferrer"
             >Open in Google Maps</a>
           </div>
+
+          <p class="panel-version" id="panel-version">GuidedCityTour v1.3.0 · 2026-07-31</p>
         </div>
       </div>
     </aside>
@@ -744,6 +809,8 @@
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script>
     (function () {
+      const APP_VERSION = "v1.3.0";
+      const APP_VERSION_DATE = "2026-07-31";
       const DEFAULT = { lat: 48.8566, lng: 2.3522, zoom: 13 };
       const STORAGE_KEY = "gct_openai_api_key";
       const MODEL = "gpt-4o-mini";
@@ -767,6 +834,8 @@
       let youAreHereMarker = null;
       let currentSelection = null;
       let reverseAbort = null;
+      let speechState = "idle"; // idle | speaking | paused
+      let preferredVoice = null;
 
       const els = {
         placeholder: document.getElementById("panel-placeholder"),
@@ -798,7 +867,283 @@
         storyLoading: document.getElementById("story-loading"),
         storyError: document.getElementById("story-error"),
         storyText: document.getElementById("story-text"),
+        speechControls: document.getElementById("speech-controls"),
+        speechPlayBtn: document.getElementById("speech-play-btn"),
+        speechPauseBtn: document.getElementById("speech-pause-btn"),
+        speechStopBtn: document.getElementById("speech-stop-btn"),
+        speechHint: document.getElementById("speech-hint"),
+        appVersion: document.getElementById("app-version"),
+        panelVersion: document.getElementById("panel-version"),
       };
+
+      if (els.appVersion) {
+        els.appVersion.textContent = APP_VERSION;
+      }
+      if (els.panelVersion) {
+        els.panelVersion.textContent =
+          "GuidedCityTour " + APP_VERSION + " · " + APP_VERSION_DATE;
+      }
+
+      function speechSupported() {
+        return typeof window !== "undefined" && "speechSynthesis" in window;
+      }
+
+      function cleanSpokenText(raw) {
+        if (!raw) return "";
+        var text = String(raw);
+        // Strip markdown emphasis / headings / bullets for cleaner narration
+        text = text.replace(/\*\*([^*]+)\*\*/g, "$1");
+        text = text.replace(/\*([^*]+)\*/g, "$1");
+        text = text.replace(/^#{1,6}\s+/gm, "");
+        text = text.replace(/^[-*•]\s+/gm, "");
+        text = text.replace(
+          /^(What is known|Likely\s*\/\s*commonly told|Likely \/ commonly told|Atmosphere)\s*:?\s*$/gim,
+          ""
+        );
+        text = text.replace(
+          /\b(What is known|Likely\s*\/\s*commonly told|Atmosphere)\s*:\s*/gi,
+          ""
+        );
+        text = text.replace(/[ \t]+\n/g, "\n");
+        text = text.replace(/\n{3,}/g, "\n\n");
+        return text.trim();
+      }
+
+      function countryToLangHint(country) {
+        if (!country) return "";
+        var c = String(country).toLowerCase();
+        var map = {
+          france: "fr",
+          "united states": "en",
+          "united states of america": "en",
+          "united kingdom": "en",
+          england: "en",
+          scotland: "en",
+          wales: "en",
+          ireland: "en",
+          germany: "de",
+          deutschland: "de",
+          spain: "es",
+          españa: "es",
+          italy: "it",
+          italia: "it",
+          portugal: "pt",
+          netherlands: "nl",
+          belgium: "nl",
+          switzerland: "de",
+          austria: "de",
+          poland: "pl",
+          "czech republic": "cs",
+          czechia: "cs",
+          sweden: "sv",
+          norway: "nb",
+          denmark: "da",
+          finland: "fi",
+          greece: "el",
+          turkey: "tr",
+          japan: "ja",
+          china: "zh",
+          "south korea": "ko",
+          brazil: "pt",
+          mexico: "es",
+          argentina: "es",
+          canada: "en",
+          australia: "en",
+        };
+        return map[c] || "";
+      }
+
+      function pickSpeechLang() {
+        var country =
+          (currentSelection &&
+            currentSelection.address &&
+            currentSelection.address.country) ||
+          "";
+        var fromCountry = countryToLangHint(country);
+        if (fromCountry) return fromCountry;
+        var nav = (navigator.language || "en").toLowerCase();
+        return nav.split("-")[0] || "en";
+      }
+
+      function scoreVoice(voice, langPrefix) {
+        var vLang = (voice.lang || "").toLowerCase();
+        var score = 0;
+        if (vLang === langPrefix || vLang.indexOf(langPrefix + "-") === 0) {
+          score += 100;
+        } else if (vLang.indexOf(langPrefix) === 0) {
+          score += 60;
+        }
+        if (voice.localService) score += 10;
+        if (/natural|neural|premium|enhanced/i.test(voice.name || "")) score += 5;
+        return score;
+      }
+
+      function refreshPreferredVoice() {
+        if (!speechSupported()) {
+          preferredVoice = null;
+          return;
+        }
+        var voices = window.speechSynthesis.getVoices() || [];
+        if (!voices.length) {
+          preferredVoice = null;
+          return;
+        }
+        var langPrefix = pickSpeechLang();
+        var best = null;
+        var bestScore = -1;
+        for (var i = 0; i < voices.length; i++) {
+          var s = scoreVoice(voices[i], langPrefix);
+          if (s > bestScore) {
+            bestScore = s;
+            best = voices[i];
+          }
+        }
+        preferredVoice = bestScore > 0 ? best : voices[0] || null;
+      }
+
+      function updateSpeechUi() {
+        var hasStory =
+          els.storyText &&
+          !els.storyText.hidden &&
+          !!(els.storyText.textContent || "").trim();
+        var supported = speechSupported();
+
+        els.speechControls.classList.toggle("visible", hasStory || speechState !== "idle");
+
+        if (!supported) {
+          els.speechPlayBtn.disabled = true;
+          els.speechPauseBtn.disabled = true;
+          els.speechStopBtn.disabled = true;
+          els.speechPlayBtn.textContent = "Listen";
+          els.speechPauseBtn.textContent = "Pause";
+          els.speechHint.textContent =
+            "Narration is not supported in this browser.";
+          els.speechHint.classList.remove("pulse");
+          return;
+        }
+
+        els.speechPlayBtn.disabled = !hasStory || speechState === "speaking";
+        els.speechStopBtn.disabled = speechState === "idle";
+
+        var canPause =
+          typeof window.speechSynthesis.pause === "function" &&
+          typeof window.speechSynthesis.resume === "function";
+
+        if (speechState === "speaking") {
+          els.speechPlayBtn.textContent = "Listen";
+          els.speechPauseBtn.disabled = !canPause;
+          els.speechPauseBtn.textContent = "Pause";
+          els.speechHint.textContent = "Reading the story aloud…";
+          els.speechHint.classList.remove("pulse");
+        } else if (speechState === "paused") {
+          els.speechPlayBtn.textContent = "Listen";
+          els.speechPlayBtn.disabled = true;
+          els.speechPauseBtn.disabled = !canPause;
+          els.speechPauseBtn.textContent = "Resume";
+          els.speechHint.textContent = "Paused — resume or stop narration.";
+          els.speechHint.classList.remove("pulse");
+        } else {
+          els.speechPlayBtn.textContent = "Listen";
+          els.speechPauseBtn.disabled = true;
+          els.speechPauseBtn.textContent = "Pause";
+          if (hasStory) {
+            els.speechHint.textContent = "Tap Listen for a guided narration";
+            els.speechHint.classList.add("pulse");
+          } else {
+            els.speechHint.textContent = "";
+            els.speechHint.classList.remove("pulse");
+          }
+        }
+      }
+
+      function stopSpeech() {
+        if (speechSupported()) {
+          try {
+            window.speechSynthesis.cancel();
+          } catch (_) {
+            /* ignore */
+          }
+        }
+        speechState = "idle";
+        updateSpeechUi();
+      }
+
+      function speakStory() {
+        if (!speechSupported()) {
+          updateSpeechUi();
+          return;
+        }
+        var raw = (els.storyText.textContent || "").trim();
+        if (!raw) {
+          updateSpeechUi();
+          return;
+        }
+
+        var spoken = cleanSpokenText(raw);
+        if (!spoken) return;
+
+        stopSpeech();
+        refreshPreferredVoice();
+
+        var utter = new SpeechSynthesisUtterance(spoken);
+        if (preferredVoice) {
+          utter.voice = preferredVoice;
+          utter.lang = preferredVoice.lang || pickSpeechLang();
+        } else {
+          utter.lang = pickSpeechLang();
+        }
+        utter.rate = 1;
+        utter.pitch = 1;
+
+        utter.onstart = function () {
+          speechState = "speaking";
+          updateSpeechUi();
+        };
+        utter.onend = function () {
+          speechState = "idle";
+          updateSpeechUi();
+        };
+        utter.onerror = function () {
+          speechState = "idle";
+          updateSpeechUi();
+        };
+
+        // Some browsers need a tick after cancel before speak
+        setTimeout(function () {
+          try {
+            window.speechSynthesis.speak(utter);
+            speechState = "speaking";
+            updateSpeechUi();
+          } catch (_) {
+            speechState = "idle";
+            els.speechHint.textContent = "Could not start narration. Try again.";
+            updateSpeechUi();
+          }
+        }, 40);
+      }
+
+      function togglePauseSpeech() {
+        if (!speechSupported()) return;
+        var synth = window.speechSynthesis;
+        if (speechState === "speaking") {
+          try {
+            synth.pause();
+            speechState = "paused";
+          } catch (_) {
+            stopSpeech();
+            return;
+          }
+        } else if (speechState === "paused") {
+          try {
+            synth.resume();
+            speechState = "speaking";
+          } catch (_) {
+            stopSpeech();
+            return;
+          }
+        }
+        updateSpeechUi();
+      }
 
       function getApiKey() {
         try {
@@ -865,12 +1210,15 @@
       }
 
       function clearStory() {
+        stopSpeech();
         els.storyBlock.classList.remove("visible");
         els.storyLoading.classList.remove("visible");
         els.storyError.classList.remove("visible");
         els.storyError.textContent = "";
         els.storyText.hidden = true;
         els.storyText.textContent = "";
+        els.speechControls.classList.remove("visible");
+        updateSpeechUi();
       }
 
       function updateGenerateButton() {
@@ -1228,6 +1576,8 @@
         els.storyError.textContent = "";
         els.storyText.hidden = true;
         els.storyText.textContent = "";
+        stopSpeech();
+        els.speechControls.classList.remove("visible");
         els.generateBtn.disabled = true;
 
         const addr = currentSelection.address || {};
@@ -1341,6 +1691,14 @@
           els.storyLoading.classList.remove("visible");
           els.storyText.textContent = text.trim();
           els.storyText.hidden = false;
+          els.speechControls.classList.add("visible");
+          updateSpeechUi();
+          // Offer listen after generation (user gesture still required to play)
+          setTimeout(function () {
+            if (els.speechPlayBtn && !els.speechPlayBtn.disabled) {
+              els.speechPlayBtn.focus();
+            }
+          }, 50);
         } catch (err) {
           els.storyLoading.classList.remove("visible");
           var message =
@@ -1449,6 +1807,39 @@
         generateStory();
       });
 
+      els.speechPlayBtn.addEventListener("click", function () {
+        speakStory();
+      });
+
+      els.speechPauseBtn.addEventListener("click", function () {
+        togglePauseSpeech();
+      });
+
+      els.speechStopBtn.addEventListener("click", function () {
+        stopSpeech();
+      });
+
+      if (speechSupported()) {
+        window.speechSynthesis.addEventListener("voiceschanged", function () {
+          refreshPreferredVoice();
+        });
+        refreshPreferredVoice();
+        // Chrome sometimes leaves speech stuck after page hide; reset UI
+        document.addEventListener("visibilitychange", function () {
+          if (document.hidden) return;
+          if (
+            speechSupported() &&
+            !window.speechSynthesis.speaking &&
+            !window.speechSynthesis.paused &&
+            speechState !== "idle"
+          ) {
+            speechState = "idle";
+            updateSpeechUi();
+          }
+        });
+      }
+
+      updateSpeechUi();
       updateKeyUi();
 
       if (!getApiKey()) {

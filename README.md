@@ -4,6 +4,8 @@ A static single-page map app for exploring locations and generating short guided
 
 **Live site:** [https://spirea89.github.io/GuidedCityTour/](https://spirea89.github.io/GuidedCityTour/)
 
+**On-page version:** look for `v1.3.0` in the header badge and side-panel footer (`GuidedCityTour v1.3.0 · …`). After a deploy, hard-refresh if the version does not match the latest commit notes — GitHub Pages can serve a cached older build briefly.
+
 ## Features
 
 - Interactive Leaflet map with OpenStreetMap tiles
@@ -11,7 +13,8 @@ A static single-page map app for exploring locations and generating short guided
 - Optional browser geolocation (“Use my location”) with a distinct “you are here” marker
 - Side panel: Google Maps embed, coordinates, Street View / Maps links
 - Choose story focus: house/building, street, or neighbourhood/area
-- Generate an atmospheric guided-tour story via OpenAI (`gpt-4o-mini`) using **your** API key
+- Generate a history-focused guided-tour story via OpenAI (`gpt-4o-mini`) using **your** API key
+- **Listen** to the story with browser text-to-speech (Web Speech API) — Listen / Pause / Stop; no extra TTS key required
 - Mobile-responsive layout (panel stacks under the map on narrow screens)
 
 ## OpenAI API key (browser-only)
@@ -37,6 +40,10 @@ You can update or clear the key anytime. Without a key, **Generate story** stays
 - Click the map or pick a search result → Nominatim reverse-geocode fills address details.
 - In the side panel, choose **This house / building**, **This street**, or **This neighbourhood / area**, then **Generate story**.
 
+## Story narration (text-to-speech)
+
+After a story appears, use **Listen** to hear a cleaned reading via the browser’s built-in `speechSynthesis` voices (no ElevenLabs/OpenAI TTS required). **Pause** / **Resume** work when the browser supports them; **Stop** always cancels narration. Speech stops automatically when you clear the selection, change focus, or generate a new story. The app does **not** auto-play — browsers often block that without a user gesture.
+
 ## Deploy to GitHub Pages
 
 1. Push this repository to GitHub.
@@ -44,6 +51,8 @@ You can update or clear the key anytime. Without a key, **Generate story** stays
 3. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
 4. Choose branch **main** and folder **/ (root)**.
 5. Click **Save**. The site appears at `https://<username>.github.io/<repo-name>/` after a minute or two.
+
+Bump the `APP_VERSION` constant in `index.html` with each meaningful release so the live header/footer version confirms you have the latest deploy.
 
 ## Local use
 
@@ -58,3 +67,4 @@ OpenAI’s Chat Completions API generally allows browser requests with a user-su
 - Leaflet + OpenStreetMap tiles
 - Nominatim (search + reverse)
 - OpenAI Chat Completions (`gpt-4o-mini`) from the client
+- Web Speech API (`speechSynthesis`) for optional story narration
