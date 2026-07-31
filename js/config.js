@@ -1,5 +1,5 @@
 /** GuidedCityTour shared config — no secrets. */
-export const APP_VERSION = "v2.0.0";
+export const APP_VERSION = "v2.0.1";
 export const APP_VERSION_DATE = "2026-07-31";
 export const PIPELINE_VERSION = "2.0.0";
 

@@ -22,8 +22,12 @@ export class PromptBuilder {
       "3. Adult narration may use verified claims freely, and may include a clearly " +
       "labeled “Legends & local stories” section only from claims.legends.\n" +
       "4. Kids narration: verified claims only; simpler language; no invented stories.\n" +
-      "5. Output MUST be a single JSON object matching the schema. No markdown fences.\n" +
-      "6. If web search is unavailable, do not fill verified claims from model memory."
+      "5. Write ALL narration text in English (narration.adult, narration.kids, " +
+      "narration.sections, and any spoken guide text), regardless of the place’s " +
+      "country or local language. Proper nouns and place names may stay in their " +
+      "local form.\n" +
+      "6. Output MUST be a single JSON object matching the schema. No markdown fences.\n" +
+      "7. If web search is unavailable, do not fill verified claims from model memory."
     );
   }
 
@@ -38,7 +42,8 @@ export class PromptBuilder {
         "If sources conflict on a material fact, set status source_conflict.\n" +
         "Then write narration.adult ONLY from verified (+ labeled legends section).\n" +
         "If kids_mode, also write narration.kids from verified only.\n" +
-        "Fill narration.sections for requested categories when evidence exists." +
+        "Fill narration.sections for requested categories when evidence exists.\n" +
+        "All narration fields MUST be in English (even if the place is in a non-English country)." +
         schema
       );
     }
@@ -50,14 +55,16 @@ export class PromptBuilder {
         "claims.verified MUST be []. Put gaps in claims.unknown.\n" +
         "narration.adult may only describe OSM identity (name, type, address, allow-listed nearby) " +
         "and clearly state that historical research was unavailable.\n" +
-        "narration.kids: brief honest note that we could not verify stories yet." +
+        "narration.kids: brief honest note that we could not verify stories yet.\n" +
+        "Write both narrations in English." +
         schema
       );
     }
     if (mode === "narrate") {
       return (
         "Mode: NARRATE FROM PROVIDED CLAIMS ONLY\n" +
-        "Do not add facts. Write adult (+ kids if requested) and sections." +
+        "Do not add facts. Write adult (+ kids if requested) and sections.\n" +
+        "All narration text MUST be in English." +
         schema
       );
     }
@@ -104,7 +111,9 @@ export class PromptBuilder {
       (kidsMode ? "true" : "false") +
       "\nResearch mode: " +
       researchMode +
-      "\n\nReturn JSON matching TourResponse schema. Deduplicate citations[] from verified sources."
+      "\nLanguage: English — write narration.adult, narration.kids, and narration.sections in English " +
+      "regardless of the place’s country or local language.\n" +
+      "\nReturn JSON matching TourResponse schema. Deduplicate citations[] from verified sources."
     );
   }
 

@@ -154,28 +154,29 @@ function cleanSpokenText(raw) {
   return text.trim();
 }
 
-function pickSpeechLang() {
-  return (navigator.language || "en-US").slice(0, 2);
-}
+/** GuidedCityTour always narrates in English regardless of locale / place. */
+const SPEECH_LANG = "en-US";
 
 function refreshPreferredVoice() {
   if (!speechSupported()) return;
   const voices = window.speechSynthesis.getVoices() || [];
-  const want = pickSpeechLang();
   let best = null;
   let bestScore = -1;
   for (let i = 0; i < voices.length; i++) {
     const v = voices[i];
-    const lang = (v.lang || "").toLowerCase();
+    const lang = (v.lang || "").toLowerCase().replace("_", "-");
     let score = 0;
-    if (lang.startsWith(want)) score += 2;
-    if (v.localService) score += 1;
+    if (lang === "en-us" || lang.startsWith("en-us-")) score += 4;
+    else if (lang === "en-gb" || lang.startsWith("en-gb-")) score += 3;
+    else if (lang === "en" || lang.startsWith("en-")) score += 2;
+    if (score > 0 && v.localService) score += 1;
     if (score > bestScore) {
       bestScore = score;
       best = voices[i];
     }
   }
-  preferredVoice = bestScore > 0 ? best : voices[0] || null;
+  // Prefer any English voice; otherwise leave null and rely on utterance.lang.
+  preferredVoice = bestScore > 0 ? best : null;
 }
 
 function updateSpeechUi() {
@@ -246,11 +247,9 @@ function speakStory() {
   stopSpeech();
   refreshPreferredVoice();
   const utter = new SpeechSynthesisUtterance(spoken);
+  utter.lang = SPEECH_LANG;
   if (preferredVoice) {
     utter.voice = preferredVoice;
-    utter.lang = preferredVoice.lang || pickSpeechLang();
-  } else {
-    utter.lang = pickSpeechLang();
   }
   utter.rate = 1;
   utter.onstart = () => {
