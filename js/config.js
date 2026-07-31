@@ -1,7 +1,7 @@
 /** GuidedCityTour shared config - no secrets. */
-export const APP_VERSION = "v2.2.2";
+export const APP_VERSION = "v2.2.3";
 export const APP_VERSION_DATE = "2026-07-31";
-export const PIPELINE_VERSION = "2.2.2";
+export const PIPELINE_VERSION = "2.2.3";
 
 export const DEFAULT_MAP = { lat: 48.8566, lng: 2.3522, zoom: 13 };
 
@@ -33,6 +33,10 @@ export const OPENAI_TTS_MAX_CHARS = 3600;
 export const OPENAI_TTS_INSTRUCTIONS =
   "Speak as a calm museum city-guide narrator. Warm, clear English with measured pacing. Sound informative and welcoming, not theatrical or robotic.";
 
+/** Photon (Komoot) — preferred browser geocoder; CORS-friendly. */
+export const PHOTON_BASE = "https://photon.komoot.io";
+
+/** Nominatim fallback only (public instance is often rate-limited / 429). */
 export const NOMINATIM_HEADERS = {
   Accept: "application/json",
   "Accept-Language":

@@ -25,7 +25,7 @@ function osmClientHeaders() {
     typeof navigator !== "undefined" ? String(navigator.userAgent || "") : "";
   if (!ua || /node\.js/i.test(ua)) {
     headers["User-Agent"] =
-      "GuidedCityTour/2.2.2 (https://github.com/spirea89/GuidedCityTour)";
+      "GuidedCityTour/2.2.3 (https://github.com/spirea89/GuidedCityTour)";
   }
   return headers;
 }
@@ -67,6 +67,7 @@ const TYPE_SCORES = {
   "tourism/yes": 70,
   "man_made/monument": 90,
   "man_made/statue": 85,
+  "man_made/tower": 88,
   "leisure/pitch": 35,
 };
 
@@ -309,48 +310,16 @@ function landmarkFromOverpassElement(el, clickLat, clickLng) {
 
 /**
  * Query nearby named landmarks within LANDMARK_RADIUS_M of the click.
- * Nominatim structured search first (reliable in-browser path already used by the app).
- * Overpass GET mirrors broaden coverage when Nominatim misses (GET avoids CORS 406).
+ * Overpass only — avoids hammering public Nominatim (which returns HTTP 429
+ * when LandmarkFinder used to fire ~10 structured searches per map click).
  */
 export async function fetchNearbyLandmarks(lat, lng, signal) {
-  let nominatimHits = [];
   try {
-    nominatimHits = await fetchLandmarksNominatim(lat, lng, signal);
+    return await fetchLandmarksOverpass(lat, lng, signal);
   } catch (err) {
     if (err && err.name === "AbortError") throw err;
-    nominatimHits = [];
+    return [];
   }
-  if (
-    nominatimHits.some((h) => h.score >= LANDMARK_HIGH_CONFIDENCE_SCORE)
-  ) {
-    return nominatimHits;
-  }
-
-  let overpassHits = [];
-  try {
-    overpassHits = await fetchLandmarksOverpass(lat, lng, signal);
-  } catch (err) {
-    if (err && err.name === "AbortError") throw err;
-    overpassHits = [];
-  }
-
-  const seen = new Set();
-  const out = [];
-  const merged = nominatimHits.concat(overpassHits);
-  for (let i = 0; i < merged.length; i++) {
-    const lm = merged[i];
-    if (!lm || !lm.name) continue;
-    const key = lm.name.toLowerCase();
-    if (seen.has(key)) {
-      const prev = out.find((x) => x.name.toLowerCase() === key);
-      if (prev && lm.score > prev.score) Object.assign(prev, lm);
-      continue;
-    }
-    seen.add(key);
-    out.push(lm);
-  }
-  out.sort((a, b) => b.score - a.score || a.dist_m - b.dist_m);
-  return out;
 }
 
 function buildOverpassQuery(lat, lng, radius) {
@@ -462,91 +431,6 @@ function normalizeOverpassElements(elements, lat, lng) {
     }
     seen.add(key);
     out.push(lm);
-  }
-  out.sort((a, b) => b.score - a.score || a.dist_m - b.dist_m);
-  return out;
-}
-
-/**
- * Nominatim structured searches in a tight viewbox (works with existing app CORS path).
- */
-async function fetchLandmarksNominatim(lat, lng, signal) {
-  const d = LANDMARK_RADIUS_M / 111320;
-  const viewbox =
-    lng -
-    d +
-    "," +
-    (lat + d) +
-    "," +
-    (lng + d) +
-    "," +
-    (lat - d);
-  const queries = [
-    "[leisure=stadium]",
-    "[building=stadium]",
-    "[tourism=museum]",
-    "[amenity=museum]",
-    "[amenity=place_of_worship]",
-    "[amenity=theatre]",
-    "[historic=monument]",
-    "[historic=castle]",
-    "[tourism=attraction]",
-    "[leisure=park]",
-  ];
-
-  const seen = new Set();
-  const out = [];
-  for (let i = 0; i < queries.length; i++) {
-    if (signal && signal.aborted) {
-      const abortErr = new Error("Aborted");
-      abortErr.name = "AbortError";
-      throw abortErr;
-    }
-    const url =
-      "https://nominatim.openstreetmap.org/search?format=json&limit=4&bounded=1" +
-      "&addressdetails=1&dedupe=1&namedetails=1&extratags=1" +
-      "&viewbox=" +
-      encodeURIComponent(viewbox) +
-      "&q=" +
-      encodeURIComponent(queries[i]);
-    try {
-      const res = await fetch(url, {
-        headers: osmClientHeaders(),
-        signal,
-      });
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (!Array.isArray(data)) continue;
-      for (let j = 0; j < data.length; j++) {
-        const lm = landmarkFromNominatimHit(data[j], lat, lng);
-        if (!lm || lm.dist_m > LANDMARK_RADIUS_M) continue;
-        const key = lm.name.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-        out.push(lm);
-      }
-      if (out.some((x) => x.score >= LANDMARK_HIGH_CONFIDENCE_SCORE)) break;
-    } catch (err) {
-      if (err && err.name === "AbortError") throw err;
-    }
-    // Nominatim usage policy: roughly 1 req/sec
-    if (i < queries.length - 1) {
-      await new Promise((resolve, reject) => {
-        const timer = setTimeout(resolve, 1100);
-        if (!signal) return;
-        const onAbort = () => {
-          clearTimeout(timer);
-          const abortErr = new Error("Aborted");
-          abortErr.name = "AbortError";
-          reject(abortErr);
-        };
-        if (signal.aborted) {
-          onAbort();
-          return;
-        }
-        signal.addEventListener("abort", onAbort, { once: true });
-      });
-    }
   }
   out.sort((a, b) => b.score - a.score || a.dist_m - b.dist_m);
   return out;

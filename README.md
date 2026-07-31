@@ -1,10 +1,10 @@
 ﻿# Guided City Tour (Map Explorer)
 
-A static map app for exploring locations and generating **grounded** guided-tour stories. Built with Leaflet (desktop), optional MapLibre GL (mobile), OpenStreetMap / Nominatim, and OpenAI — no backend required for the demo path.
+A static map app for exploring locations and generating **grounded** guided-tour stories. Built with Leaflet (desktop), optional MapLibre GL (mobile), OpenStreetMap / Photon (+ Nominatim fallback), and OpenAI — no backend required for the demo path.
 
 **Live site:** [https://spirea89.github.io/GuidedCityTour/](https://spirea89.github.io/GuidedCityTour/)
 
-**On-page version:** look for **`v2.2.2`** in the header badge and side-panel footer. After a deploy, hard-refresh if the version does not match - GitHub Pages can serve a cached older build briefly.
+**On-page version:** look for **`v2.2.3`** in the header badge and side-panel footer. After a deploy, hard-refresh if the version does not match - GitHub Pages can serve a cached older build briefly.
 
 ## Architecture (v2.1+)
 
@@ -19,7 +19,7 @@ Hallucination-resistant AI layer: the LLM is a **narration/reasoning engine**, n
 Full design: **[docs/AI_ARCHITECTURE.md](docs/AI_ARCHITECTURE.md)**  
 Also: [prompts](docs/ai/prompts.md) · [JSON schema](docs/ai/json-schema.md) · [implementation plan](docs/ai/implementation-plan.md) · [backend interfaces](docs/ai/backend-interfaces.md) · [Supabase cache](docs/ai/supabase-cache.md)
 
-Client modules live under `js/services/` (`BuildingIdentifier` / `PlaceIdentifier`, `ResearchService`, `FactVerifier`, `NarrationGenerator`, `PromptBuilder`, `CacheService` / `TourCache`, `OpenAIService`, `ResponseValidator`, `TourPipeline`, `MobileMap`).
+Client modules live under `js/services/` (`BuildingIdentifier` / `PlaceIdentifier`, `ResearchService`, `FactVerifier`, `NarrationGenerator`, `PromptBuilder`, `CacheService` / `TourCache`, `OpenAIService`, `ResponseValidator`, `TourPipeline`, `Geocoder`, `LandmarkFinder`, `MobileMap`).
 
 ## Features
 
@@ -28,10 +28,11 @@ Client modules live under `js/services/` (`BuildingIdentifier` / `PlaceIdentifie
 - Mobile MapLibre GL map (OpenFreeMap, no API key): geolocation centering, ~60 degree pitch, optional device compass, 3D building extrusions when tile data allows
 - Nearby landmark chips (~150 m) under the mobile map for tapping buildings/POIs next to you
 - Fallback: if MapLibre fails to load, keep Leaflet 2D but still apply the mobile layout
-- Nominatim place search and reverse geocoding
+- Photon place search and reverse geocoding (Nominatim fallback when available)
 - Optional browser geolocation (“Use my location”)
 - Side panel: Google Maps embed, coordinates, Street View / Maps links
 - Story focus: landmark (stadium, museum, church, ...), house/building, street, or neighbourhood/area
+- Nearby landmarks via Overpass (not Nominatim bursts)
 - Topic toggles: History, Architecture, Personalities, Interesting facts, Today + **Kids mode**
 - Grounded tour generation (Responses + web_search when the browser allows it)
 - **Degraded path:** if web research is blocked (CORS / API), the app **refuses to invent history**
@@ -56,7 +57,7 @@ Stories need an [OpenAI API key](https://platform.openai.com/api-keys).
 
 ## How the pipeline works
 
-1. Click the map or search → Nominatim fills address + nearby OSM allow-list.
+1. Click the map or search → Photon fills address; Overpass finds nearby landmarks.
 2. Choose focus + topics (+ optional Kids mode).
 3. **Generate grounded tour** runs `TourPipeline`:
    - Low identification confidence → confirm candidate (no research yet)
@@ -75,7 +76,7 @@ Stories need an [OpenAI API key](https://platform.openai.com/api-keys).
 
 1. Push to GitHub `main`.
 2. **Settings → Pages** → Deploy from branch `main` / `(root)`.
-3. Confirm live badge shows `v2.2.2` (hard-refresh if needed).
+3. Confirm live badge shows `v2.2.3` (hard-refresh if needed).
 
 ES modules require `http://` or `https://` (not always `file://`). Serve locally with any static server if needed.
 
@@ -85,8 +86,9 @@ Chat Completions with a user key often works in the browser. **Responses API + w
 
 ## Stack
 
-- Leaflet + OpenStreetMap tiles + Nominatim
+- Leaflet + OpenStreetMap tiles + Photon (Nominatim fallback)
 - MapLibre GL JS + OpenFreeMap (mobile mode, CDN)
+- Overpass API for nearby landmark discovery
 - Vanilla JS ES modules (`js/`)
 - OpenAI Responses API (+ web_search) with Chat Completions degraded path
 - OpenAI Audio Speech API for Listen (with Web Speech API fallback)

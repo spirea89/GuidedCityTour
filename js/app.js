@@ -14,8 +14,6 @@ import {
   MODEL_QUALITY,
   MODEL_ECONOMY,
   DEFAULT_MODEL,
-  NOMINATIM_HEADERS,
-  NEARBY_DELTA_DEG,
   NEARBY_MAX_M,
   NEARBY_ALLOWED_CLASSES,
   NEARBY_SKIP_TYPES,
@@ -37,6 +35,12 @@ import {
   mergeLandmarkIntoAddress,
   isLandmarkClassType,
 } from "./services/LandmarkFinder.js";
+import {
+  searchPlaces,
+  reverseGeocodePlace,
+  searchNearbyText,
+  formatGeocoderError,
+} from "./services/Geocoder.js";
 import {
   createMobileMap,
   loadMapLibreFromCdn,
@@ -1268,25 +1272,13 @@ function isUsefulNearbyHit(item, name) {
 }
 
 async function fetchNearbyPlaces(lat, lng, areaHint, signal) {
-  const d = NEARBY_DELTA_DEG;
-  const viewbox =
-    lng - d + "," + (lat + d) + "," + (lng + d) + "," + (lat - d);
   const q = areaHint && String(areaHint).trim()
     ? String(areaHint).trim() + " museum memorial monument church park"
     : "museum memorial monument church park";
-  const url =
-    "https://nominatim.openstreetmap.org/search?format=json&limit=12&bounded=1" +
-    "&addressdetails=0&dedupe=1&namedetails=1" +
-    "&viewbox=" +
-    encodeURIComponent(viewbox) +
-    "&q=" +
-    encodeURIComponent(q);
 
   try {
-    const res = await fetch(url, { headers: NOMINATIM_HEADERS, signal });
-    if (!res.ok) return [];
-    const data = await res.json();
-    if (!Array.isArray(data)) return [];
+    const data = await searchNearbyText(q, lat, lng, { limit: 12, signal });
+    if (!Array.isArray(data) || !data.length) return [];
     const seen = {};
     const places = [];
     data.forEach((item) => {
@@ -1327,20 +1319,7 @@ async function reverseGeocode(lat, lng, fallbackLabel, preferredLandmark) {
   reverseAbort = new AbortController();
   const signal = reverseAbort.signal;
   try {
-    const reverseUrl =
-      "https://nominatim.openstreetmap.org/reverse?lat=" +
-      encodeURIComponent(lat) +
-      "&lon=" +
-      encodeURIComponent(lng) +
-      "&format=json&addressdetails=1&extratags=1&namedetails=1&zoom=18";
-
-    const reversePromise = fetch(reverseUrl, {
-      headers: NOMINATIM_HEADERS,
-      signal,
-    }).then(async (res) => {
-      if (!res.ok) throw new Error("Reverse geocode failed");
-      return res.json();
-    });
+    const reversePromise = reverseGeocodePlace(lat, lng, { signal });
 
     const landmarksPromise = fetchNearbyLandmarks(lat, lng, signal).catch(
       (err) => {
@@ -1410,11 +1389,15 @@ async function reverseGeocode(lat, lng, fallbackLabel, preferredLandmark) {
     );
     currentSelection.options = options;
     els.reverseStatus.textContent = "";
+    els.reverseStatus.classList.remove("error");
     renderFocusOptions(options);
   } catch (err) {
     if (err && err.name === "AbortError") return;
-    els.reverseStatus.textContent =
-      "Could not look up address. You can still pick a focus from coordinates.";
+    const detail = formatGeocoderError(
+      err,
+      "Could not look up address. You can still pick a focus from coordinates."
+    );
+    els.reverseStatus.textContent = detail;
     els.reverseStatus.classList.add("error");
     if (!currentSelection) return;
     const preferred =
@@ -1615,13 +1598,7 @@ els.form.addEventListener("submit", async (e) => {
   els.btn.disabled = true;
   setStatus("Searching...");
   try {
-    const url =
-      "https://nominatim.openstreetmap.org/search?q=" +
-      encodeURIComponent(q) +
-      "&format=json&addressdetails=1&extratags=1&namedetails=1&limit=1";
-    const res = await fetch(url, { headers: NOMINATIM_HEADERS });
-    if (!res.ok) throw new Error("Geocoder request failed");
-    const data = await res.json();
+    const data = await searchPlaces(q, { limit: 1 });
     if (!data || !data.length) {
       setStatus("No results found.", true);
       return;
@@ -1629,6 +1606,10 @@ els.form.addEventListener("submit", async (e) => {
     const hit = data[0];
     const lat = parseFloat(hit.lat);
     const lng = parseFloat(hit.lon);
+    if (!isFinite(lat) || !isFinite(lng)) {
+      setStatus("Search returned an invalid location. Try a different query.", true);
+      return;
+    }
     const preferredLandmark = isLandmarkClassType(hit.class, hit.type)
       ? landmarkFromNominatimHit(hit, lat, lng)
       : null;
@@ -1640,8 +1621,11 @@ els.form.addEventListener("submit", async (e) => {
       preferredLandmark: preferredLandmark,
     });
     setStatus("");
-  } catch (_) {
-    setStatus("Search failed. Try again.", true);
+  } catch (err) {
+    setStatus(
+      formatGeocoderError(err, "Search failed. Try again in a moment."),
+      true
+    );
   } finally {
     els.btn.disabled = false;
   }
