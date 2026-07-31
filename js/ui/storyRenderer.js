@@ -145,7 +145,7 @@ export class StoryRenderer {
     this.renderCitations(result.citations || []);
 
     return {
-      speakText: body,
+      speakText: buildSpeakText(result.narration || {}, kidsMode),
     };
   }
 
@@ -254,27 +254,81 @@ function statusLabel(status) {
   }
 }
 
-function renderSections(sections) {
-  const labels = {
-    history: "History",
-    architecture: "Architecture",
-    famous_people: "Personalities",
-    personalities: "Personalities",
-    interesting_facts: "Interesting facts",
-    today: "Today",
-  };
+/** Display / spoken labels for narration.sections keys (order matters). */
+const SECTION_SPEAK_ORDER = [
+  ["history", "History"],
+  ["architecture", "Architecture"],
+  ["famous_people", "Personalities"],
+  ["personalities", "Personalities"],
+  ["interesting_facts", "Interesting facts"],
+  ["today", "Today"],
+];
+
+/**
+ * Collect non-empty category sections in panel order.
+ * Dedupes aliases (famous_people / personalities) by spoken title.
+ * @returns {{ title: string, text: string }[]}
+ */
+function collectSpokenSections(sections) {
+  if (!sections || typeof sections !== "object") return [];
+  const seenTitles = new Set();
+  const out = [];
+  for (let i = 0; i < SECTION_SPEAK_ORDER.length; i++) {
+    const key = SECTION_SPEAK_ORDER[i][0];
+    const title = SECTION_SPEAK_ORDER[i][1];
+    const text = String(sections[key] || "").trim();
+    if (!text || seenTitles.has(title)) continue;
+    seenTitles.add(title);
+    out.push({ title, text });
+  }
+  return out;
+}
+
+/**
+ * Build TTS script from structured category sections (title + body).
+ * Prefers sections over the adult blob to avoid double-reading.
+ * When Kids Mode is on and kids text exists, includes it as its own titled block.
+ * Falls back to adult (or kids) narration when no sections were generated.
+ */
+function buildSpeakText(narration, kidsMode) {
+  const adult = String((narration && narration.adult) || "").trim();
+  const kids = String((narration && narration.kids) || "").trim();
+  const sectionBlocks = collectSpokenSections(
+    (narration && narration.sections) || {}
+  );
+
   const parts = [];
-  for (const key of Object.keys(labels)) {
-    const text = sections[key];
-    if (text && String(text).trim()) {
-      parts.push(
-        '<div class="story-section"><div class="story-section-label">' +
-          escapeHtml(labels[key]) +
-          "</div><div class=\"story-section-body\">" +
-          escapeHtml(String(text).trim()) +
-          "</div></div>"
-      );
-    }
+  if (kidsMode && kids) {
+    parts.push("Kids Mode. " + kids);
+  }
+
+  for (let i = 0; i < sectionBlocks.length; i++) {
+    const block = sectionBlocks[i];
+    parts.push(block.title + ". " + block.text);
+  }
+
+  if (parts.length) {
+    // Structured sections (and optional Kids Mode) — skip adult blob.
+    return parts.join("\n\n");
+  }
+
+  // No category sections: speak the displayed main narration only.
+  if (kidsMode && kids) return kids;
+  return adult;
+}
+
+function renderSections(sections) {
+  const blocks = collectSpokenSections(sections);
+  const parts = [];
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    parts.push(
+      '<div class="story-section"><div class="story-section-label">' +
+        escapeHtml(block.title) +
+        "</div><div class=\"story-section-body\">" +
+        escapeHtml(block.text) +
+        "</div></div>"
+    );
   }
   return parts.join("");
 }
