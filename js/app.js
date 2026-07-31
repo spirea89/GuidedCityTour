@@ -8,6 +8,7 @@ import {
   DEFAULT_MAP,
   STORAGE_KEY,
   MODEL_STORAGE_KEY,
+  TTS_VOICE_STORAGE_KEY,
   MOBILE_FIT_STORAGE_KEY,
   MOBILE_NEARBY_CHIP_M,
   MODEL_QUALITY,
@@ -19,6 +20,13 @@ import {
   NEARBY_ALLOWED_CLASSES,
   NEARBY_SKIP_TYPES,
   STORY_CATEGORIES,
+  OPENAI_TTS_MODEL_PREFERRED,
+  OPENAI_TTS_MODEL_FALLBACK,
+  OPENAI_TTS_VOICES,
+  OPENAI_TTS_DEFAULT_VOICE,
+  OPENAI_TTS_SPEED,
+  OPENAI_TTS_MAX_CHARS,
+  OPENAI_TTS_INSTRUCTIONS,
 } from "./config.js";
 import { TourPipeline } from "./services/TourPipeline.js";
 import { StoryRenderer } from "./ui/storyRenderer.js";
@@ -52,6 +60,8 @@ let reverseAbort = null;
 let nearbyAbort = null;
 let chipsAbort = null;
 let speechState = "idle";
+/** "openai" | "webspeech" | null */
+let speechEngine = null;
 let preferredVoice = null;
 let lastSpeakText = "";
 let pendingConfirm = null;
@@ -60,6 +70,11 @@ let speechTimer = null;
 let speechQueue = [];
 let speechIndex = 0;
 let speechPausedBetween = false;
+let speechLoading = false;
+let openaiAudio = null;
+let openaiBlobUrl = null;
+/** Cached working TTS model for this session (preferred or fallback). */
+let openaiTtsModelResolved = null;
 let mobileFit = false;
 let mobileMap = null;
 let mobileMapReady = false;
@@ -110,6 +125,7 @@ const els = {
   speechPauseBtn: document.getElementById("speech-pause-btn"),
   speechStopBtn: document.getElementById("speech-stop-btn"),
   speechHint: document.getElementById("speech-hint"),
+  speechNote: document.getElementById("speech-note"),
   appVersion: document.getElementById("app-version"),
   panelVersion: document.getElementById("panel-version"),
   categoryOptions: document.getElementById("category-options"),
@@ -117,6 +133,9 @@ const els = {
   citationsBlock: document.getElementById("citations-block"),
   confirmBlock: document.getElementById("confirm-block"),
   claimsMeta: document.getElementById("claims-meta"),
+  ttsVoiceNova: document.getElementById("tts-voice-nova"),
+  ttsVoiceShimmer: document.getElementById("tts-voice-shimmer"),
+  ttsVoiceCoral: document.getElementById("tts-voice-coral"),
 };
 
 const pipeline = new TourPipeline({
@@ -173,6 +192,14 @@ function speechSupported() {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }
 
+function audioPlaybackSupported() {
+  return typeof Audio !== "undefined";
+}
+
+function narrationAvailable() {
+  return speechSupported() || audioPlaybackSupported();
+}
+
 /**
  * Strip URLs, markdown links, and citation/source sections from narration
  * before TTS. Displayed story text can still show citations; only spoken text
@@ -225,11 +252,13 @@ function cleanSpokenText(raw) {
 
 /** GuidedCityTour always narrates in English regardless of locale / place. */
 const SPEECH_LANG = "en-US";
-/** Museum audio-guide pacing: calm, slightly slow, steady. */
+/** Museum audio-guide pacing: calm, slightly slow, steady (Web Speech fallback). */
 const SPEECH_RATE = 0.88;
 const SPEECH_PITCH = 0.95;
 const SPEECH_VOLUME = 1;
 const SPEECH_GAP_MS = 340;
+/** Slightly longer gap between OpenAI TTS chunks for museum pacing. */
+const OPENAI_TTS_GAP_MS = 420;
 
 /** Prefer calm, clear English system voices when available. */
 const PREFERRED_VOICE_NEEDLES = [
@@ -292,8 +321,13 @@ function refreshPreferredVoice() {
   preferredVoice = bestScore > 0 ? best : null;
 }
 
-/** Split narration into paragraph/sentence chunks for guide-like pauses. */
-function splitSpokenChunks(text) {
+/**
+ * Split narration into paragraph/sentence chunks.
+ * @param {string} text
+ * @param {number} [maxLen=280] - soft max chars per chunk (OpenAI TTS uses ~3600).
+ */
+function splitSpokenChunks(text, maxLen) {
+  const limit = typeof maxLen === "number" && maxLen > 0 ? maxLen : 280;
   const paragraphs = String(text)
     .split(/\n\s*\n/)
     .map(function (p) {
@@ -303,30 +337,59 @@ function splitSpokenChunks(text) {
   const chunks = [];
   for (let p = 0; p < paragraphs.length; p++) {
     const para = paragraphs[p];
+    if (para.length <= limit) {
+      chunks.push(para);
+      continue;
+    }
     const sentences = para.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [para];
     let buf = "";
     for (let s = 0; s < sentences.length; s++) {
       const piece = sentences[s].trim();
       if (!piece) continue;
-      if (buf && (buf + " " + piece).length > 280) {
+      if (buf && (buf + " " + piece).length > limit) {
         chunks.push(buf);
         buf = piece;
+        // Hard-split oversized sentences under the OpenAI char cap.
+        while (buf.length > limit) {
+          let cut = buf.lastIndexOf(" ", limit);
+          if (cut < limit * 0.5) cut = limit;
+          chunks.push(buf.slice(0, cut).trim());
+          buf = buf.slice(cut).trim();
+        }
       } else {
         buf = buf ? buf + " " + piece : piece;
       }
     }
     if (buf) chunks.push(buf);
   }
-  return chunks.length ? chunks : [String(text).trim()];
+  return chunks.length ? chunks : [String(text).trim()].filter(Boolean);
+}
+
+function idleSpeechHint() {
+  return "Tap Listen for a guided narration";
+}
+
+function updateSpeechNote() {
+  if (!els.speechNote) return;
+  if (getApiKey()) {
+    els.speechNote.hidden = false;
+    els.speechNote.textContent =
+      "Narration uses OpenAI voice when your API key is set";
+  } else {
+    els.speechNote.hidden = false;
+    els.speechNote.textContent =
+      "Add an API key for natural OpenAI narration (otherwise browser voice)";
+  }
 }
 
 function updateSpeechUi() {
   const hasStory = !!(lastSpeakText || "").trim();
-  const supported = speechSupported();
+  const supported = narrationAvailable();
   els.speechControls.classList.toggle(
     "visible",
-    hasStory || speechState !== "idle"
+    hasStory || speechState !== "idle" || speechLoading
   );
+  updateSpeechNote();
 
   if (!supported) {
     els.speechPlayBtn.disabled = true;
@@ -337,16 +400,31 @@ function updateSpeechUi() {
     return;
   }
 
+  if (speechLoading) {
+    els.speechPlayBtn.disabled = true;
+    els.speechPauseBtn.disabled = true;
+    els.speechStopBtn.disabled = false;
+    els.speechPauseBtn.textContent = "Pause";
+    els.speechHint.textContent = "Preparing museum-style narration...";
+    els.speechHint.classList.remove("pulse");
+    return;
+  }
+
   els.speechPlayBtn.disabled = !hasStory || speechState === "speaking";
   els.speechStopBtn.disabled = speechState === "idle";
   const canPause =
-    typeof window.speechSynthesis.pause === "function" &&
-    typeof window.speechSynthesis.resume === "function";
+    speechEngine === "openai" ||
+    (speechSupported() &&
+      typeof window.speechSynthesis.pause === "function" &&
+      typeof window.speechSynthesis.resume === "function");
 
   if (speechState === "speaking") {
     els.speechPauseBtn.disabled = !canPause;
     els.speechPauseBtn.textContent = "Pause";
-    els.speechHint.textContent = "Reading the story aloud...";
+    els.speechHint.textContent =
+      speechEngine === "openai"
+        ? "Listening to OpenAI guide voice..."
+        : "Reading the story aloud...";
     els.speechHint.classList.remove("pulse");
   } else if (speechState === "paused") {
     els.speechPlayBtn.disabled = true;
@@ -357,7 +435,7 @@ function updateSpeechUi() {
     els.speechPauseBtn.disabled = true;
     els.speechPauseBtn.textContent = "Pause";
     if (hasStory) {
-      els.speechHint.textContent = "Tap Listen for a guided narration";
+      els.speechHint.textContent = idleSpeechHint();
       els.speechHint.classList.add("pulse");
     } else {
       els.speechHint.textContent = "";
@@ -373,12 +451,42 @@ function clearSpeechTimer() {
   }
 }
 
+function revokeOpenAiBlob() {
+  if (openaiBlobUrl) {
+    try {
+      URL.revokeObjectURL(openaiBlobUrl);
+    } catch (_) {
+      /* ignore */
+    }
+    openaiBlobUrl = null;
+  }
+}
+
+function clearOpenAiAudio() {
+  if (openaiAudio) {
+    try {
+      openaiAudio.onended = null;
+      openaiAudio.onerror = null;
+      openaiAudio.onplay = null;
+      openaiAudio.pause();
+      openaiAudio.removeAttribute("src");
+      openaiAudio.load();
+    } catch (_) {
+      /* ignore */
+    }
+    openaiAudio = null;
+  }
+  revokeOpenAiBlob();
+}
+
 function stopSpeech() {
   speechToken += 1;
   speechPausedBetween = false;
+  speechLoading = false;
   speechQueue = [];
   speechIndex = 0;
   clearSpeechTimer();
+  clearOpenAiAudio();
   if (speechSupported()) {
     try {
       window.speechSynthesis.cancel();
@@ -386,6 +494,7 @@ function stopSpeech() {
       /* ignore */
     }
   }
+  speechEngine = null;
   speechState = "idle";
   updateSpeechUi();
 }
@@ -402,10 +511,11 @@ function makeGuideUtterance(chunk) {
   return utter;
 }
 
-function speakNextChunk(token) {
+function speakNextWebChunk(token) {
   if (token !== speechToken || speechPausedBetween) return;
   if (speechIndex >= speechQueue.length) {
     speechState = "idle";
+    speechEngine = null;
     updateSpeechUi();
     return;
   }
@@ -421,18 +531,20 @@ function speakNextChunk(token) {
     speechIndex += 1;
     if (speechIndex >= speechQueue.length) {
       speechState = "idle";
+      speechEngine = null;
       updateSpeechUi();
       return;
     }
     speechTimer = setTimeout(() => {
       speechTimer = null;
       if (token !== speechToken || speechPausedBetween) return;
-      speakNextChunk(token);
+      speakNextWebChunk(token);
     }, SPEECH_GAP_MS);
   };
   utter.onerror = () => {
     if (token !== speechToken) return;
     speechState = "idle";
+    speechEngine = null;
     updateSpeechUi();
   };
 
@@ -440,13 +552,200 @@ function speakNextChunk(token) {
     window.speechSynthesis.speak(utter);
   } catch (_) {
     speechState = "idle";
+    speechEngine = null;
     els.speechHint.textContent = "Could not start narration. Try again.";
     updateSpeechUi();
   }
 }
 
-function speakStory() {
+function startWebSpeech(spoken, token) {
   if (!speechSupported()) {
+    speechLoading = false;
+    speechState = "idle";
+    speechEngine = null;
+    els.speechHint.textContent =
+      "Narration is not supported in this browser.";
+    updateSpeechUi();
+    return;
+  }
+  refreshPreferredVoice();
+  speechEngine = "webspeech";
+  speechQueue = splitSpokenChunks(spoken, 280);
+  speechIndex = 0;
+  speechPausedBetween = false;
+  speechLoading = false;
+  speechState = "speaking";
+  updateSpeechUi();
+  setTimeout(() => {
+    if (token !== speechToken) return;
+    try {
+      speakNextWebChunk(token);
+    } catch (_) {
+      speechState = "idle";
+      speechEngine = null;
+      els.speechHint.textContent = "Could not start narration. Try again.";
+      updateSpeechUi();
+    }
+  }, 40);
+}
+
+async function fetchOpenAiSpeechBlob(text) {
+  const voice = getTtsVoice();
+  const models = openaiTtsModelResolved
+    ? [openaiTtsModelResolved]
+    : [OPENAI_TTS_MODEL_PREFERRED, OPENAI_TTS_MODEL_FALLBACK];
+  let last = { ok: false, error: "TTS failed" };
+  for (let i = 0; i < models.length; i++) {
+    const model = models[i];
+    const result = await pipeline.openAi.createSpeech({
+      input: text,
+      voice: voice,
+      speed: OPENAI_TTS_SPEED,
+      model: model,
+      instructions:
+        model === OPENAI_TTS_MODEL_PREFERRED ? OPENAI_TTS_INSTRUCTIONS : null,
+    });
+    if (result.ok) {
+      openaiTtsModelResolved = model;
+      return result;
+    }
+    last = result;
+    if (result.status === 401 || result.status === 403) break;
+    // Model unavailable / not found → try fallback; other errors stop retries.
+    const msg = (result.error || "").toLowerCase();
+    const tryNext =
+      result.status === 404 ||
+      /model|not found|does not exist|invalid/i.test(msg);
+    if (!tryNext) break;
+  }
+  return last;
+}
+
+function playOpenAiBlob(blob, token) {
+  return new Promise((resolve) => {
+    if (token !== speechToken) {
+      resolve("stopped");
+      return;
+    }
+    clearOpenAiAudio();
+    const url = URL.createObjectURL(blob);
+    openaiBlobUrl = url;
+    const audio = new Audio(url);
+    openaiAudio = audio;
+    audio.onplay = () => {
+      if (token !== speechToken) return;
+      speechLoading = false;
+      speechState = "speaking";
+      updateSpeechUi();
+    };
+    audio.onended = () => {
+      resolve(token === speechToken ? "ended" : "stopped");
+    };
+    audio.onerror = () => {
+      resolve(token === speechToken ? "error" : "stopped");
+    };
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.then === "function") {
+      playPromise.catch(() => {
+        resolve(token === speechToken ? "error" : "stopped");
+      });
+    }
+  });
+}
+
+async function speakNextOpenAiChunk(token) {
+  if (token !== speechToken || speechPausedBetween) return;
+  if (speechIndex >= speechQueue.length) {
+    speechLoading = false;
+    speechState = "idle";
+    speechEngine = null;
+    clearOpenAiAudio();
+    updateSpeechUi();
+    return;
+  }
+
+  speechLoading = speechIndex === 0 || !openaiAudio;
+  if (speechLoading) updateSpeechUi();
+
+  const chunk = speechQueue[speechIndex];
+  const result = await fetchOpenAiSpeechBlob(chunk);
+  if (token !== speechToken || speechPausedBetween) return;
+
+  if (!result.ok) {
+    // First chunk failure → fall back to Web Speech for the full script.
+    if (speechIndex === 0) {
+      const full = speechQueue.join("\n\n");
+      clearOpenAiAudio();
+      speechEngine = null;
+      startWebSpeech(full, token);
+      return;
+    }
+    // Mid-tour: try Web Speech for remaining chunks.
+    const remaining = speechQueue.slice(speechIndex).join("\n\n");
+    clearOpenAiAudio();
+    startWebSpeech(remaining, token);
+    return;
+  }
+
+  speechLoading = false;
+  if (token !== speechToken) return;
+  if (speechPausedBetween) {
+    speechState = "paused";
+    updateSpeechUi();
+    return;
+  }
+  const outcome = await playOpenAiBlob(result.blob, token);
+  if (token !== speechToken) return;
+  if (speechPausedBetween) {
+    speechState = "paused";
+    updateSpeechUi();
+    return;
+  }
+
+  if (outcome === "error") {
+    if (speechIndex === 0) {
+      startWebSpeech(speechQueue.join("\n\n"), token);
+      return;
+    }
+    startWebSpeech(speechQueue.slice(speechIndex).join("\n\n"), token);
+    return;
+  }
+  if (outcome !== "ended") return;
+
+  speechIndex += 1;
+  if (speechIndex >= speechQueue.length) {
+    speechState = "idle";
+    speechEngine = null;
+    clearOpenAiAudio();
+    updateSpeechUi();
+    return;
+  }
+
+  speechTimer = setTimeout(() => {
+    speechTimer = null;
+    if (token !== speechToken || speechPausedBetween) return;
+    speakNextOpenAiChunk(token);
+  }, OPENAI_TTS_GAP_MS);
+}
+
+async function startOpenAiSpeech(spoken, token) {
+  speechEngine = "openai";
+  speechQueue = splitSpokenChunks(spoken, OPENAI_TTS_MAX_CHARS);
+  speechIndex = 0;
+  speechPausedBetween = false;
+  speechLoading = true;
+  speechState = "speaking";
+  updateSpeechUi();
+  try {
+    await speakNextOpenAiChunk(token);
+  } catch (_) {
+    if (token !== speechToken) return;
+    startWebSpeech(spoken, token);
+  }
+}
+
+function speakStory() {
+  if (!narrationAvailable()) {
     updateSpeechUi();
     return;
   }
@@ -454,27 +753,52 @@ function speakStory() {
   if (!spoken) return;
 
   stopSpeech();
-  refreshPreferredVoice();
-  speechQueue = splitSpokenChunks(spoken);
-  speechIndex = 0;
-  speechPausedBetween = false;
   const token = ++speechToken;
+  const key = getApiKey();
 
-  setTimeout(() => {
-    if (token !== speechToken) return;
-    try {
-      speechState = "speaking";
-      updateSpeechUi();
-      speakNextChunk(token);
-    } catch (_) {
-      speechState = "idle";
-      els.speechHint.textContent = "Could not start narration. Try again.";
-      updateSpeechUi();
-    }
-  }, 40);
+  if (key && audioPlaybackSupported()) {
+    startOpenAiSpeech(spoken, token);
+    return;
+  }
+  startWebSpeech(spoken, token);
 }
 
 function togglePauseSpeech() {
+  if (speechEngine === "openai") {
+    if (speechState === "speaking") {
+      if (speechTimer) {
+        clearSpeechTimer();
+        speechPausedBetween = true;
+        speechState = "paused";
+      } else if (openaiAudio) {
+        try {
+          openaiAudio.pause();
+          speechState = "paused";
+        } catch (_) {
+          stopSpeech();
+          return;
+        }
+      } else {
+        speechPausedBetween = true;
+        speechState = "paused";
+      }
+    } else if (speechState === "paused") {
+      speechPausedBetween = false;
+      if (openaiAudio && openaiAudio.paused && !openaiAudio.ended) {
+        const playPromise = openaiAudio.play();
+        speechState = "speaking";
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch(() => stopSpeech());
+        }
+      } else {
+        speechState = "speaking";
+        speakNextOpenAiChunk(speechToken);
+      }
+    }
+    updateSpeechUi();
+    return;
+  }
+
   if (!speechSupported()) return;
   const synth = window.speechSynthesis;
   if (speechState === "speaking") {
@@ -495,7 +819,7 @@ function togglePauseSpeech() {
     speechPausedBetween = false;
     if (!synth.speaking && !synth.paused) {
       speechState = "speaking";
-      speakNextChunk(speechToken);
+      speakNextWebChunk(speechToken);
     } else {
       try {
         synth.resume();
@@ -507,6 +831,36 @@ function togglePauseSpeech() {
     }
   }
   updateSpeechUi();
+}
+
+function getTtsVoice() {
+  try {
+    const stored = (localStorage.getItem(TTS_VOICE_STORAGE_KEY) || "")
+      .trim()
+      .toLowerCase();
+    if (OPENAI_TTS_VOICES.indexOf(stored) !== -1) return stored;
+  } catch (_) {
+    /* ignore */
+  }
+  return OPENAI_TTS_DEFAULT_VOICE;
+}
+
+function setTtsVoice(voice) {
+  const next =
+    OPENAI_TTS_VOICES.indexOf(voice) !== -1 ? voice : OPENAI_TTS_DEFAULT_VOICE;
+  try {
+    localStorage.setItem(TTS_VOICE_STORAGE_KEY, next);
+  } catch (_) {
+    /* ignore */
+  }
+  syncTtsVoiceRadios();
+}
+
+function syncTtsVoiceRadios() {
+  const voice = getTtsVoice();
+  if (els.ttsVoiceNova) els.ttsVoiceNova.checked = voice === "nova";
+  if (els.ttsVoiceShimmer) els.ttsVoiceShimmer.checked = voice === "shimmer";
+  if (els.ttsVoiceCoral) els.ttsVoiceCoral.checked = voice === "coral";
 }
 
 function getApiKey() {
@@ -558,11 +912,13 @@ function syncModelRadios() {
 function updateKeyUi() {
   els.keyDot.classList.toggle("set", !!getApiKey());
   updateGenerateButton();
+  updateSpeechNote();
 }
 
 function openKeyModal(force) {
   els.apiKeyInput.value = getApiKey();
   syncModelRadios();
+  syncTtsVoiceRadios();
   els.keyModal.classList.add("open");
   if (force || !getApiKey()) {
     setTimeout(() => els.apiKeyInput.focus(), 50);
@@ -1327,13 +1683,20 @@ els.saveKeyBtn.addEventListener("click", () => {
     els.modelEconomy && els.modelEconomy.checked
       ? MODEL_ECONOMY
       : MODEL_QUALITY;
+  let chosenVoice = OPENAI_TTS_DEFAULT_VOICE;
+  if (els.ttsVoiceShimmer && els.ttsVoiceShimmer.checked) chosenVoice = "shimmer";
+  else if (els.ttsVoiceCoral && els.ttsVoiceCoral.checked) chosenVoice = "coral";
+  else if (els.ttsVoiceNova && els.ttsVoiceNova.checked) chosenVoice = "nova";
+  setTtsVoice(chosenVoice);
   setStoryModel(chosenModel);
   setApiKey(key);
   closeKeyModal();
   setGeoBanner(
     "API key saved (" +
       (chosenModel === MODEL_ECONOMY ? "Economy" : "Quality") +
-      " model). Key stays in this browser only.",
+      ", voice " +
+      chosenVoice +
+      "). Key stays in this browser only.",
     "ok"
   );
 });
@@ -1377,23 +1740,28 @@ if (els.kidsMode) {
 if (speechSupported()) {
   window.speechSynthesis.addEventListener("voiceschanged", refreshPreferredVoice);
   refreshPreferredVoice();
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) return;
-    if (
-      speechSupported() &&
-      !window.speechSynthesis.speaking &&
-      !window.speechSynthesis.paused &&
-      speechState !== "idle"
-    ) {
-      speechState = "idle";
-      updateSpeechUi();
-    }
-  });
 }
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return;
+  if (speechEngine === "openai") return;
+  if (
+    speechSupported() &&
+    !window.speechSynthesis.speaking &&
+    !window.speechSynthesis.paused &&
+    speechState !== "idle" &&
+    !speechLoading
+  ) {
+    speechState = "idle";
+    speechEngine = null;
+    updateSpeechUi();
+  }
+});
 
 updateSpeechUi();
 updateKeyUi();
 syncModelRadios();
+syncTtsVoiceRadios();
 
 if (!getApiKey()) {
   setTimeout(() => openKeyModal(true), 400);

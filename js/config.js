@@ -1,12 +1,14 @@
 /** GuidedCityTour shared config - no secrets. */
-export const APP_VERSION = "v2.2.1";
+export const APP_VERSION = "v2.2.2";
 export const APP_VERSION_DATE = "2026-07-31";
-export const PIPELINE_VERSION = "2.2.1";
+export const PIPELINE_VERSION = "2.2.2";
 
 export const DEFAULT_MAP = { lat: 48.8566, lng: 2.3522, zoom: 13 };
 
 export const STORAGE_KEY = "gct_openai_api_key";
 export const MODEL_STORAGE_KEY = "gct_openai_model";
+/** OpenAI TTS voice preference: nova | shimmer | coral */
+export const TTS_VOICE_STORAGE_KEY = "gct_openai_tts_voice";
 /** "1" / "0" - mobile fit layout + pitched MapLibre when available */
 export const MOBILE_FIT_STORAGE_KEY = "gct_mobile_fit";
 /** Nearby POI chips under the mobile map (meters) */
@@ -14,6 +16,22 @@ export const MOBILE_NEARBY_CHIP_M = 150;
 export const MODEL_QUALITY = "gpt-4o";
 export const MODEL_ECONOMY = "gpt-4o-mini";
 export const DEFAULT_MODEL = MODEL_QUALITY;
+
+/**
+ * OpenAI Text-to-Speech for museum-style Listen narration.
+ * Prefer gpt-4o-mini-tts (instructions + natural guide tone); fall back to tts-1-hd.
+ * Default voice: nova (calm, clear). Alternatives: shimmer, coral.
+ */
+export const OPENAI_TTS_MODEL_PREFERRED = "gpt-4o-mini-tts";
+export const OPENAI_TTS_MODEL_FALLBACK = "tts-1-hd";
+export const OPENAI_TTS_VOICES = ["nova", "shimmer", "coral"];
+export const OPENAI_TTS_DEFAULT_VOICE = "nova";
+/** Measured museum-guide pacing (API range 0.25–4.0). */
+export const OPENAI_TTS_SPEED = 0.92;
+/** Soft limit under the ~4096-char OpenAI TTS input cap. */
+export const OPENAI_TTS_MAX_CHARS = 3600;
+export const OPENAI_TTS_INSTRUCTIONS =
+  "Speak as a calm museum city-guide narrator. Warm, clear English with measured pacing. Sound informative and welcoming, not theatrical or robotic.";
 
 export const NOMINATIM_HEADERS = {
   Accept: "application/json",

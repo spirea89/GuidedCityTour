@@ -717,6 +717,14 @@
       color: var(--accent);
     }
 
+    .speech-note {
+      margin: 0;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+      opacity: 0.92;
+    }
+
     .panel-version {
       margin-top: auto;
       padding-top: 0.75rem;
@@ -1048,7 +1056,7 @@
 <body>
   <header class="header">
     <div class="brand">Guided <span>City Tour</span></div>
-    <span class="app-version" id="app-version" title="App version - compare with the latest GitHub Pages deploy">v2.2.1</span>
+    <span class="app-version" id="app-version" title="App version - compare with the latest GitHub Pages deploy">v2.2.2</span>
     <form class="search-form" id="search-form" role="search">
       <input
         type="search"
@@ -1156,6 +1164,7 @@
                 <button type="button" class="btn btn-ghost" id="speech-stop-btn" disabled>Stop</button>
               </div>
               <p class="speech-hint" id="speech-hint">Tap Listen for a guided narration</p>
+              <p class="speech-note" id="speech-note">Narration uses OpenAI voice when your API key is set</p>
             </div>
           </div>
 
@@ -1177,7 +1186,7 @@
             >Open in Google Maps</a>
           </div>
 
-          <p class="panel-version" id="panel-version">GuidedCityTour v2.2.1 | 2026-07-31</p>
+          <p class="panel-version" id="panel-version">GuidedCityTour v2.2.2 | 2026-07-31</p>
         </div>
       </div>
     </aside>
@@ -1187,7 +1196,7 @@
     <div class="modal">
       <h3 id="key-modal-title">OpenAI API key</h3>
       <p class="modal-note">
-        Your key is stored only in this browser (<code>localStorage</code>) and is sent only to OpenAI when you generate a story.
+        Your key is stored only in this browser (<code>localStorage</code>) and is sent only to OpenAI when you generate a story or use Listen narration.
         It is never uploaded to this site or committed to the repository.
       </p>
       <label for="api-key-input">API key</label>
@@ -1212,6 +1221,30 @@
           <span>
             Economy (gpt-4o-mini)
             <span class="model-hint">Cheaper / faster; thinner storytelling</span>
+          </span>
+        </label>
+      </div>
+      <label id="tts-voice-label">Listen voice (OpenAI TTS)</label>
+      <div class="model-toggle" role="radiogroup" aria-labelledby="tts-voice-label">
+        <label class="model-option">
+          <input type="radio" name="tts-voice" id="tts-voice-nova" value="nova" checked />
+          <span>
+            Nova
+            <span class="model-hint">Calm museum-guide default</span>
+          </span>
+        </label>
+        <label class="model-option">
+          <input type="radio" name="tts-voice" id="tts-voice-shimmer" value="shimmer" />
+          <span>
+            Shimmer
+            <span class="model-hint">Softer, lighter tone</span>
+          </span>
+        </label>
+        <label class="model-option">
+          <input type="radio" name="tts-voice" id="tts-voice-coral" value="coral" />
+          <span>
+            Coral
+            <span class="model-hint">Warm, conversational guide</span>
           </span>
         </label>
       </div>

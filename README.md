@@ -4,7 +4,7 @@ A static map app for exploring locations and generating **grounded** guided-tour
 
 **Live site:** [https://spirea89.github.io/GuidedCityTour/](https://spirea89.github.io/GuidedCityTour/)
 
-**On-page version:** look for **`v2.2.1`** in the header badge and side-panel footer. After a deploy, hard-refresh if the version does not match - GitHub Pages can serve a cached older build briefly.
+**On-page version:** look for **`v2.2.2`** in the header badge and side-panel footer. After a deploy, hard-refresh if the version does not match - GitHub Pages can serve a cached older build briefly.
 
 ## Architecture (v2.1+)
 
@@ -36,7 +36,7 @@ Client modules live under `js/services/` (`BuildingIdentifier` / `PlaceIdentifie
 - Grounded tour generation (Responses + web_search when the browser allows it)
 - **Degraded path:** if web research is blocked (CORS / API), the app **refuses to invent history**
 - IndexedDB cache for successful grounded tours (per browser); Supabase adapter stub for shared production cache
-- **Listen** with Web Speech API TTS (English narrations)
+- **Listen** prefers OpenAI TTS (`gpt-4o-mini-tts` / `tts-1-hd`, voice nova by default) when an API key is set; falls back to Web Speech API with museum rate/pitch
 
 ## OpenAI API key (browser-only demo)
 
@@ -44,8 +44,8 @@ Stories need an [OpenAI API key](https://platform.openai.com/api-keys).
 
 1. Open the live site (or serve this folder locally).
 2. Paste your key in the **API key** dialog.
-3. Choose **Quality (gpt-4o)** or **Economy (gpt-4o-mini)**.
-4. Key and model are stored only in **`localStorage`**.
+3. Choose **Quality (gpt-4o)** or **Economy (gpt-4o-mini)**, and optionally a **Listen voice** (Nova / Shimmer / Coral).
+4. Key, model, and voice preference are stored only in **`localStorage`**.
 5. The key is sent **only to OpenAI** — never to GitHub Pages.
 
 ### Security notes
@@ -75,7 +75,7 @@ Stories need an [OpenAI API key](https://platform.openai.com/api-keys).
 
 1. Push to GitHub `main`.
 2. **Settings → Pages** → Deploy from branch `main` / `(root)`.
-3. Confirm live badge shows `v2.2.1` (hard-refresh if needed).
+3. Confirm live badge shows `v2.2.2` (hard-refresh if needed).
 
 ES modules require `http://` or `https://` (not always `file://`). Serve locally with any static server if needed.
 
@@ -89,5 +89,5 @@ Chat Completions with a user key often works in the browser. **Responses API + w
 - MapLibre GL JS + OpenFreeMap (mobile mode, CDN)
 - Vanilla JS ES modules (`js/`)
 - OpenAI Responses API (+ web_search) with Chat Completions degraded path
+- OpenAI Audio Speech API for Listen (with Web Speech API fallback)
 - IndexedDB tour cache (+ Supabase adapter stub)
-- Web Speech API for TTS

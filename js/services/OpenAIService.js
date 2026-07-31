@@ -167,6 +167,85 @@ export class OpenAIService {
     }
   }
 
+  /**
+   * OpenAI Text-to-Speech → audio blob (mp3 by default).
+   * Used by Listen when a browser API key is available.
+   * @returns {{ ok: boolean, blob?: Blob, error?: string, status?: number, corsLikely?: boolean }}
+   */
+  async createSpeech({
+    input,
+    voice = "nova",
+    speed = 0.92,
+    model = "gpt-4o-mini-tts",
+    instructions = null,
+    responseFormat = "mp3",
+  } = {}) {
+    if (!this.apiKey) {
+      return { ok: false, error: "Missing API key" };
+    }
+    const text = input == null ? "" : String(input).trim();
+    if (!text) {
+      return { ok: false, error: "Empty speech input" };
+    }
+
+    const body = {
+      model: model,
+      input: text,
+      voice: voice,
+      speed: speed,
+      response_format: responseFormat,
+    };
+    // instructions is supported on gpt-4o-mini-tts (not classic tts-1 / tts-1-hd).
+    if (instructions && String(model).indexOf("gpt-4o") !== -1) {
+      body.instructions = instructions;
+    }
+
+    try {
+      const res = await fetch(this.baseUrl + "/audio/speech", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + this.apiKey,
+          Accept: "audio/mpeg, application/octet-stream, application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        let json = null;
+        try {
+          json = await res.json();
+        } catch (_) {
+          json = null;
+        }
+        return {
+          ok: false,
+          error:
+            (json && json.error && json.error.message) ||
+            statusToMessage(res.status),
+          status: res.status,
+          raw: json,
+        };
+      }
+
+      const blob = await res.blob();
+      if (!blob || !blob.size) {
+        return { ok: false, error: "Empty audio response" };
+      }
+      return {
+        ok: true,
+        blob: blob,
+        contentType: res.headers.get("content-type") || "audio/mpeg",
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        error: (err && err.message) || "Network error calling TTS",
+        corsLikely: !!(err && err.name === "TypeError"),
+      };
+    }
+  }
+
   /** POST to production Worker when configured. */
   async postTourEndpoint(endpoint, payload, authToken) {
     try {
