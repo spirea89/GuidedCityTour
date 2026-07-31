@@ -1,4 +1,4 @@
-# Map Explorer
+﻿# Map Explorer (GuidedCityTour)
 
 A simple single-page map app for exploring locations with Leaflet, OpenStreetMap, and Google Maps links. Click the map or search a place to preview it in an embedded Google Map and open Street View or Google Maps in a new tab. No API keys required.
 
