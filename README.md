@@ -1,71 +1,82 @@
 ﻿# Guided City Tour (Map Explorer)
 
-A static single-page map app for exploring locations and generating short guided-tour stories with ChatGPT. Built with Leaflet, OpenStreetMap / Nominatim, and the OpenAI API — no backend required.
+A static map app for exploring locations and generating **grounded** guided-tour stories. Built with Leaflet, OpenStreetMap / Nominatim, and OpenAI — no backend required for the demo path.
 
 **Live site:** [https://spirea89.github.io/GuidedCityTour/](https://spirea89.github.io/GuidedCityTour/)
 
-**On-page version:** look for `v1.5.0` in the header badge and side-panel footer (`GuidedCityTour v1.5.0 · …`). After a deploy, hard-refresh if the version does not match the latest commit notes — GitHub Pages can serve a cached older build briefly.
+**On-page version:** look for **`v2.0.0`** in the header badge and side-panel footer. After a deploy, hard-refresh if the version does not match — GitHub Pages can serve a cached older build briefly.
+
+## Architecture (v2)
+
+Hallucination-resistant AI layer: the LLM is a **narration/reasoning engine**, not the source of truth. Pipeline:
+
+1. **Identify** place from OSM (confidence + confirmation if low)
+2. **Research** via OpenAI **Responses API** + **web_search** when available
+3. **Extract** verified / uncertain / legends / unknown claims with sources
+4. **Narrate** only from verified facts (legends clearly labeled; kids = verified only)
+5. **Validate** structured JSON before display; show **citations**
+
+Full design: **[docs/AI_ARCHITECTURE.md](docs/AI_ARCHITECTURE.md)**  
+Also: [prompts](docs/ai/prompts.md) · [JSON schema](docs/ai/json-schema.md) · [implementation plan](docs/ai/implementation-plan.md) · [backend interfaces](docs/ai/backend-interfaces.md)
+
+Client modules live under `js/services/` (`PlaceIdentifier`, `ResearchService`, `FactVerifier`, `NarrationGenerator`, `PromptBuilder`, `CacheService`, `OpenAIService`, `ResponseValidator`, `TourPipeline`).
 
 ## Features
 
 - Interactive Leaflet map with OpenStreetMap tiles
-- Nominatim place search and reverse geocoding (free, no API key)
-- Optional browser geolocation (“Use my location”) with a distinct “you are here” marker
+- Nominatim place search and reverse geocoding
+- Optional browser geolocation (“Use my location”)
 - Side panel: Google Maps embed, coordinates, Street View / Maps links
-- Choose story focus: house/building, street, or neighbourhood/area
-- Generate a vivid guided-tour story via OpenAI (`gpt-4o` by default; optional `gpt-4o-mini` economy) using **your** API key
-- **Listen** to the story with browser text-to-speech (Web Speech API) — Listen / Pause / Stop; no extra TTS key required
-- Mobile-responsive layout (panel stacks under the map on narrow screens)
+- Story focus: house/building, street, or neighbourhood/area
+- Topic toggles: History, Architecture, Famous people, Interesting facts, Today + **Kids mode**
+- Grounded tour generation (Responses + web_search when the browser allows it)
+- **Degraded path:** if web research is blocked (CORS / API), the app **refuses to invent history**
+- IndexedDB cache for successful grounded tours (per browser)
+- **Listen** with Web Speech API TTS
+- Mobile-responsive layout
 
-## OpenAI API key (browser-only)
+## OpenAI API key (browser-only demo)
 
 Stories need an [OpenAI API key](https://platform.openai.com/api-keys).
 
-1. Open the live site (or local `index.html`).
-2. Paste your key in the **API key** dialog (also available anytime from the header).
-3. Choose **Quality (gpt-4o)** (default) or **Economy (gpt-4o-mini)** for cheaper/faster stories.
-4. The key and model choice are stored only in **`localStorage`** in your browser.
-5. The key is sent **only to OpenAI** when you click **Generate story** — never to this GitHub Pages site.
-
-You can update or clear the key anytime. Without a key, **Generate story** stays disabled.
+1. Open the live site (or serve this folder locally).
+2. Paste your key in the **API key** dialog.
+3. Choose **Quality (gpt-4o)** or **Economy (gpt-4o-mini)**.
+4. Key and model are stored only in **`localStorage`**.
+5. The key is sent **only to OpenAI** — never to GitHub Pages.
 
 ### Security notes
 
-- **Do not commit API keys** to git, put them in the URL, or share screenshots that show the key.
-- This is a static site: the key lives in the user’s browser. Anyone with access to that browser profile can read `localStorage`.
+- **Do not commit API keys** to git or put them in the URL.
 - Prefer a key with usage limits suitable for personal demos.
+- Production should use a **Cloudflare Worker** (server-held key + shared cache) — see `docs/ai/backend-interfaces.md` and `workers/README.md`.
 
-## Geolocation & story focus
+## How the new pipeline works
 
-- On load, the app may ask for your location (permission can be denied safely). Use **Use my location** anytime.
-- Click the map or pick a search result → Nominatim reverse-geocode fills address details.
-- In the side panel, choose **This house / building**, **This street**, or **This neighbourhood / area**, then **Generate story**.
-
-## Story narration (text-to-speech)
-
-After a story appears, use **Listen** to hear a cleaned reading via the browser’s built-in `speechSynthesis` voices (no ElevenLabs/OpenAI TTS required). **Pause** / **Resume** work when the browser supports them; **Stop** always cancels narration. Speech stops automatically when you clear the selection, change focus, or generate a new story. The app does **not** auto-play — browsers often block that without a user gesture.
+1. Click the map or search → Nominatim fills address + nearby OSM allow-list.
+2. Choose focus + topics (+ optional Kids mode).
+3. **Generate grounded tour** runs `TourPipeline`:
+   - Low identification confidence → confirm candidate (no research yet)
+   - Research with web search when possible
+   - Structured JSON validated; citations rendered when present
+4. If Responses/`web_search` fails from the browser, you get `web_search_unavailable` — map identity only, **no fabricated history**.
 
 ## Deploy to GitHub Pages
 
-1. Push this repository to GitHub.
-2. Open the repo on GitHub → **Settings** → **Pages**.
-3. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
-4. Choose branch **main** and folder **/ (root)**.
-5. Click **Save**. The site appears at `https://<username>.github.io/<repo-name>/` after a minute or two.
+1. Push to GitHub `main`.
+2. **Settings → Pages** → Deploy from branch `main` / `(root)`.
+3. Confirm live badge shows `v2.0.0` (hard-refresh if needed).
 
-Bump the `APP_VERSION` constant in `index.html` with each meaningful release so the live header/footer version confirms you have the latest deploy.
-
-## Local use
-
-Open `index.html` in a browser, or serve the folder with any static file server. Nominatim and OpenAI need a network connection; geolocation and some APIs work best over `http://` or `https://` (not always from `file://`).
+ES modules require `http://` or `https://` (not always `file://`). Serve locally with any static server if needed.
 
 ### CORS note
 
-OpenAI’s Chat Completions API generally allows browser requests with a user-supplied key. If a call fails with a network/CORS error in your environment, a same-origin proxy would be needed — this project intentionally has **no backend**.
+Chat Completions with a user key often works in the browser. **Responses API + web_search** may be blocked — the client degrades safely. A same-origin Worker proxy is the production fix.
 
 ## Stack
 
-- Leaflet + OpenStreetMap tiles
-- Nominatim (search + reverse)
-- OpenAI Chat Completions (`gpt-4o` / optional `gpt-4o-mini`) from the client
-- Web Speech API (`speechSynthesis`) for optional story narration
+- Leaflet + OpenStreetMap tiles + Nominatim
+- Vanilla JS ES modules (`js/`)
+- OpenAI Responses API (+ web_search) with Chat Completions degraded path
+- IndexedDB tour cache
+- Web Speech API for TTS

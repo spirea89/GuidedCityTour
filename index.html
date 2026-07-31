@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -45,7 +45,7 @@
       min-height: 100dvh;
     }
 
-    /* —— Header —— */
+    /* â€”â€” Header â€”â€” */
     .header {
       flex: 0 0 auto;
       display: flex;
@@ -193,7 +193,7 @@
       background: var(--accent);
     }
 
-    /* —— Main layout —— */
+    /* â€”â€” Main layout â€”â€” */
     .main {
       flex: 1;
       display: flex;
@@ -207,7 +207,7 @@
       z-index: 1;
     }
 
-    /* —— Side panel —— */
+    /* â€”â€” Side panel â€”â€” */
     .panel {
       flex: 0 0 360px;
       width: 360px;
@@ -456,6 +456,122 @@
       display: block;
     }
 
+    .category-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .category-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+      color: var(--text);
+      background: var(--bg-deep);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.35rem 0.55rem;
+      cursor: pointer;
+    }
+
+    .category-option input {
+      accent-color: var(--accent);
+    }
+
+    .kids-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text);
+      margin-top: 0.35rem;
+    }
+
+    .kids-row input {
+      accent-color: var(--accent);
+    }
+
+    .claims-meta {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    .citations-block {
+      margin-top: 0.35rem;
+    }
+
+    .citations-heading {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .citations-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+
+    .citations-list a {
+      color: var(--accent);
+    }
+
+    .citation-meta {
+      color: var(--text-muted);
+    }
+
+    .confirm-block {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      margin-top: 0.35rem;
+    }
+
+    .confirm-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .confirm-candidate {
+      width: 100%;
+      text-align: left;
+    }
+
+    .story-sections {
+      margin-top: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .story-section-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
+    }
+
+    .story-section-body {
+      font-size: 0.9rem;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .story-main {
+      white-space: pre-wrap;
+    }
+
     .speech-controls {
       display: none;
       flex-direction: column;
@@ -549,7 +665,7 @@
       box-shadow: 0 0 0 2px rgba(91, 141, 239, 0.45), 0 2px 6px rgba(0, 0, 0, 0.4);
     }
 
-    /* —— Modal —— */
+    /* â€”â€” Modal â€”â€” */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -660,7 +776,7 @@
       min-width: 100px;
     }
 
-    /* —— Responsive —— */
+    /* â€”â€” Responsive â€”â€” */
     @media (max-width: 768px) {
       .header {
         flex-wrap: wrap;
@@ -714,13 +830,13 @@
 <body>
   <header class="header">
     <div class="brand">Guided <span>City Tour</span></div>
-    <span class="app-version" id="app-version" title="App version — compare with the latest GitHub Pages deploy">v1.5.0</span>
+    <span class="app-version" id="app-version" title="App version â€” compare with the latest GitHub Pages deploy">v2.0.0</span>
     <form class="search-form" id="search-form" role="search">
       <input
         type="search"
         id="search-input"
         name="q"
-        placeholder="Search a place…"
+        placeholder="Search a placeâ€¦"
         autocomplete="off"
         aria-label="Search for a place"
       />
@@ -745,8 +861,8 @@
         <div id="geo-banner" class="geo-banner" hidden></div>
 
         <div class="panel-placeholder" id="panel-placeholder">
-          <div class="hint-icon" aria-hidden="true">⌖</div>
-          <p>Click the map or search for a place, then choose a street or house. Stories weave in building history, the street, and nearby landmarks or neighbourhood events.</p>
+          <div class="hint-icon" aria-hidden="true">âŒ–</div>
+          <p>Click the map or search for a place, then choose a street or house. Tours research with web sources when available â€” verified claims only, with citations.</p>
         </div>
 
         <div class="panel-content" id="panel-content">
@@ -767,29 +883,41 @@
             <dl class="coords">
               <div>
                 <dt>Lat</dt>
-                <dd id="coord-lat">—</dd>
+                <dd id="coord-lat">â€”</dd>
               </div>
               <div>
                 <dt>Lng</dt>
-                <dd id="coord-lng">—</dd>
+                <dd id="coord-lng">â€”</dd>
               </div>
             </dl>
           </div>
 
           <div class="section">
             <h2>Story focus</h2>
-            <p class="search-status">Stories use verified map data for this pin; nearby landmarks are only those found nearby in OpenStreetMap.</p>
+            <p class="search-status">Identity from OpenStreetMap; nearby landmarks only from the OSM allow-list. History needs web sources â€” we do not invent facts.</p>
             <p id="reverse-status" class="search-status" aria-live="polite"></p>
             <div class="focus-options" id="focus-options" role="radiogroup" aria-label="Choose story focus"></div>
             <p class="focus-confirm" id="focus-confirm"></p>
           </div>
 
+          <div class="section">
+            <h2>Topics</h2>
+            <div class="category-options" id="category-options" aria-label="Story categories"></div>
+            <label class="kids-row" for="kids-mode">
+              <input type="checkbox" id="kids-mode" />
+              <span>Kids mode (simpler language, verified facts only)</span>
+            </label>
+          </div>
+
           <div class="section story-block" id="story-block">
             <h2>Guided-tour story</h2>
-            <p class="story-grounding">Grounded in map data for this area; nearby names come from OpenStreetMap.</p>
-            <p class="story-loading" id="story-loading">Researching history for this place and nearby…</p>
+            <p class="story-grounding">Pipeline: identify â†’ research â†’ verify sources â†’ narrate. LLM narrates; sources decide what is true.</p>
+            <p class="story-loading" id="story-loading">Identifying place and researching with source checksâ€¦</p>
             <p class="story-error" id="story-error" role="alert"></p>
+            <div class="confirm-block" id="confirm-block" hidden></div>
             <div class="story-text" id="story-text" hidden></div>
+            <p class="claims-meta" id="claims-meta" hidden></p>
+            <div class="citations-block" id="citations-block" hidden></div>
             <div class="speech-controls" id="speech-controls" aria-label="Story narration">
               <div class="speech-buttons">
                 <button type="button" class="btn" id="speech-play-btn" disabled>Listen</button>
@@ -801,7 +929,7 @@
           </div>
 
           <div class="actions">
-            <button type="button" class="btn" id="generate-btn" disabled>Generate history story</button>
+            <button type="button" class="btn" id="generate-btn" disabled>Generate grounded tour</button>
             <a
               class="btn btn-secondary"
               id="streetview-btn"
@@ -818,7 +946,7 @@
             >Open in Google Maps</a>
           </div>
 
-          <p class="panel-version" id="panel-version">GuidedCityTour v1.5.0 · 2026-07-31</p>
+          <p class="panel-version" id="panel-version">GuidedCityTour v2.0.0 Â· 2026-07-31</p>
         </div>
       </div>
     </aside>
@@ -837,7 +965,7 @@
         id="api-key-input"
         autocomplete="off"
         spellcheck="false"
-        placeholder="sk-…"
+        placeholder="sk-â€¦"
       />
       <label id="model-toggle-label">Story model</label>
       <div class="model-toggle" role="radiogroup" aria-labelledby="model-toggle-label">
@@ -845,7 +973,7 @@
           <input type="radio" name="story-model" id="model-quality" value="gpt-4o" checked />
           <span>
             Quality (gpt-4o)
-            <span class="model-hint">Richer guided-tour prose — recommended</span>
+            <span class="model-hint">Richer guided-tour prose â€” recommended</span>
           </span>
         </label>
         <label class="model-option">
@@ -866,1332 +994,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script>
-    (function () {
-      const APP_VERSION = "v1.5.0";
-      const APP_VERSION_DATE = "2026-07-31";
-      const DEFAULT = { lat: 48.8566, lng: 2.3522, zoom: 13 };
-      const STORAGE_KEY = "gct_openai_api_key";
-      const MODEL_STORAGE_KEY = "gct_openai_model";
-      const MODEL_QUALITY = "gpt-4o";
-      const MODEL_ECONOMY = "gpt-4o-mini";
-      const DEFAULT_MODEL = MODEL_QUALITY;
-      const NOMINATIM_HEADERS = {
-        Accept: "application/json",
-        "Accept-Language": navigator.language || "en",
-      };
-      // ~700 m walking-radius box for nearby Nominatim lookups (degrees ≈ at mid-latitudes)
-      const NEARBY_DELTA_DEG = 0.0065;
-      const NEARBY_MAX_M = 700;
-      const NEARBY_ALLOWED_CLASSES = {
-        historic: true,
-        tourism: true,
-        amenity: true,
-        building: true,
-        leisure: true,
-        office: true,
-        natural: true,
-        man_made: true,
-      };
-      const NEARBY_SKIP_TYPES = {
-        yes: true,
-        residential: true,
-        apartments: true,
-        house: true,
-        terrace: true,
-        commercial: true,
-        retail: true,
-        industrial: true,
-        parking: true,
-        parking_space: true,
-        bicycle_parking: true,
-        toilets: true,
-        bench: true,
-        waste_basket: true,
-        recycling: true,
-        atm: true,
-        vending_machine: true,
-        drinking_water: true,
-        post_box: true,
-        telephone: true,
-        fuel: true,
-        charging_station: true,
-      };
-
-      const map = L.map("map", { zoomControl: true }).setView(
-        [DEFAULT.lat, DEFAULT.lng],
-        DEFAULT.zoom
-      );
-
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
-
-      let marker = null;
-      let youAreHereMarker = null;
-      let currentSelection = null;
-      let reverseAbort = null;
-      let nearbyAbort = null;
-      let speechState = "idle"; // idle | speaking | paused
-      let preferredVoice = null;
-
-      const els = {
-        placeholder: document.getElementById("panel-placeholder"),
-        content: document.getElementById("panel-content"),
-        embed: document.getElementById("gmaps-embed"),
-        placeName: document.getElementById("place-name"),
-        lat: document.getElementById("coord-lat"),
-        lng: document.getElementById("coord-lng"),
-        streetView: document.getElementById("streetview-btn"),
-        gmaps: document.getElementById("gmaps-btn"),
-        form: document.getElementById("search-form"),
-        input: document.getElementById("search-input"),
-        btn: document.getElementById("search-btn"),
-        status: document.getElementById("search-status"),
-        locateBtn: document.getElementById("locate-btn"),
-        settingsBtn: document.getElementById("settings-btn"),
-        keyDot: document.getElementById("key-dot"),
-        keyModal: document.getElementById("key-modal"),
-        apiKeyInput: document.getElementById("api-key-input"),
-        modelQuality: document.getElementById("model-quality"),
-        modelEconomy: document.getElementById("model-economy"),
-        saveKeyBtn: document.getElementById("save-key-btn"),
-        clearKeyBtn: document.getElementById("clear-key-btn"),
-        closeKeyBtn: document.getElementById("close-key-btn"),
-        geoBanner: document.getElementById("geo-banner"),
-        focusOptions: document.getElementById("focus-options"),
-        focusConfirm: document.getElementById("focus-confirm"),
-        reverseStatus: document.getElementById("reverse-status"),
-        generateBtn: document.getElementById("generate-btn"),
-        storyBlock: document.getElementById("story-block"),
-        storyLoading: document.getElementById("story-loading"),
-        storyError: document.getElementById("story-error"),
-        storyText: document.getElementById("story-text"),
-        speechControls: document.getElementById("speech-controls"),
-        speechPlayBtn: document.getElementById("speech-play-btn"),
-        speechPauseBtn: document.getElementById("speech-pause-btn"),
-        speechStopBtn: document.getElementById("speech-stop-btn"),
-        speechHint: document.getElementById("speech-hint"),
-        appVersion: document.getElementById("app-version"),
-        panelVersion: document.getElementById("panel-version"),
-      };
-
-      if (els.appVersion) {
-        els.appVersion.textContent = APP_VERSION;
-      }
-      if (els.panelVersion) {
-        els.panelVersion.textContent =
-          "GuidedCityTour " + APP_VERSION + " · " + APP_VERSION_DATE;
-      }
-
-      function speechSupported() {
-        return typeof window !== "undefined" && "speechSynthesis" in window;
-      }
-
-      function cleanSpokenText(raw) {
-        if (!raw) return "";
-        var text = String(raw);
-        // Strip markdown emphasis / headings / bullets for cleaner narration
-        text = text.replace(/\*\*([^*]+)\*\*/g, "$1");
-        text = text.replace(/\*([^*]+)\*/g, "$1");
-        text = text.replace(/^#{1,6}\s+/gm, "");
-        text = text.replace(/^[-*•]\s+/gm, "");
-        text = text.replace(
-          /^(What is known|Likely\s*\/\s*commonly told|Likely \/ commonly told|Atmosphere)\s*:?\s*$/gim,
-          ""
-        );
-        text = text.replace(
-          /\b(What is known|Likely\s*\/\s*commonly told|Atmosphere)\s*:\s*/gi,
-          ""
-        );
-        text = text.replace(/[ \t]+\n/g, "\n");
-        text = text.replace(/\n{3,}/g, "\n\n");
-        return text.trim();
-      }
-
-      function countryToLangHint(country) {
-        if (!country) return "";
-        var c = String(country).toLowerCase();
-        var map = {
-          france: "fr",
-          "united states": "en",
-          "united states of america": "en",
-          "united kingdom": "en",
-          england: "en",
-          scotland: "en",
-          wales: "en",
-          ireland: "en",
-          germany: "de",
-          deutschland: "de",
-          spain: "es",
-          españa: "es",
-          italy: "it",
-          italia: "it",
-          portugal: "pt",
-          netherlands: "nl",
-          belgium: "nl",
-          switzerland: "de",
-          austria: "de",
-          poland: "pl",
-          "czech republic": "cs",
-          czechia: "cs",
-          sweden: "sv",
-          norway: "nb",
-          denmark: "da",
-          finland: "fi",
-          greece: "el",
-          turkey: "tr",
-          japan: "ja",
-          china: "zh",
-          "south korea": "ko",
-          brazil: "pt",
-          mexico: "es",
-          argentina: "es",
-          canada: "en",
-          australia: "en",
-        };
-        return map[c] || "";
-      }
-
-      function pickSpeechLang() {
-        var country =
-          (currentSelection &&
-            currentSelection.address &&
-            currentSelection.address.country) ||
-          "";
-        var fromCountry = countryToLangHint(country);
-        if (fromCountry) return fromCountry;
-        var nav = (navigator.language || "en").toLowerCase();
-        return nav.split("-")[0] || "en";
-      }
-
-      function scoreVoice(voice, langPrefix) {
-        var vLang = (voice.lang || "").toLowerCase();
-        var score = 0;
-        if (vLang === langPrefix || vLang.indexOf(langPrefix + "-") === 0) {
-          score += 100;
-        } else if (vLang.indexOf(langPrefix) === 0) {
-          score += 60;
-        }
-        if (voice.localService) score += 10;
-        if (/natural|neural|premium|enhanced/i.test(voice.name || "")) score += 5;
-        return score;
-      }
-
-      function refreshPreferredVoice() {
-        if (!speechSupported()) {
-          preferredVoice = null;
-          return;
-        }
-        var voices = window.speechSynthesis.getVoices() || [];
-        if (!voices.length) {
-          preferredVoice = null;
-          return;
-        }
-        var langPrefix = pickSpeechLang();
-        var best = null;
-        var bestScore = -1;
-        for (var i = 0; i < voices.length; i++) {
-          var s = scoreVoice(voices[i], langPrefix);
-          if (s > bestScore) {
-            bestScore = s;
-            best = voices[i];
-          }
-        }
-        preferredVoice = bestScore > 0 ? best : voices[0] || null;
-      }
-
-      function updateSpeechUi() {
-        var hasStory =
-          els.storyText &&
-          !els.storyText.hidden &&
-          !!(els.storyText.textContent || "").trim();
-        var supported = speechSupported();
-
-        els.speechControls.classList.toggle("visible", hasStory || speechState !== "idle");
-
-        if (!supported) {
-          els.speechPlayBtn.disabled = true;
-          els.speechPauseBtn.disabled = true;
-          els.speechStopBtn.disabled = true;
-          els.speechPlayBtn.textContent = "Listen";
-          els.speechPauseBtn.textContent = "Pause";
-          els.speechHint.textContent =
-            "Narration is not supported in this browser.";
-          els.speechHint.classList.remove("pulse");
-          return;
-        }
-
-        els.speechPlayBtn.disabled = !hasStory || speechState === "speaking";
-        els.speechStopBtn.disabled = speechState === "idle";
-
-        var canPause =
-          typeof window.speechSynthesis.pause === "function" &&
-          typeof window.speechSynthesis.resume === "function";
-
-        if (speechState === "speaking") {
-          els.speechPlayBtn.textContent = "Listen";
-          els.speechPauseBtn.disabled = !canPause;
-          els.speechPauseBtn.textContent = "Pause";
-          els.speechHint.textContent = "Reading the story aloud…";
-          els.speechHint.classList.remove("pulse");
-        } else if (speechState === "paused") {
-          els.speechPlayBtn.textContent = "Listen";
-          els.speechPlayBtn.disabled = true;
-          els.speechPauseBtn.disabled = !canPause;
-          els.speechPauseBtn.textContent = "Resume";
-          els.speechHint.textContent = "Paused — resume or stop narration.";
-          els.speechHint.classList.remove("pulse");
-        } else {
-          els.speechPlayBtn.textContent = "Listen";
-          els.speechPauseBtn.disabled = true;
-          els.speechPauseBtn.textContent = "Pause";
-          if (hasStory) {
-            els.speechHint.textContent = "Tap Listen for a guided narration";
-            els.speechHint.classList.add("pulse");
-          } else {
-            els.speechHint.textContent = "";
-            els.speechHint.classList.remove("pulse");
-          }
-        }
-      }
-
-      function stopSpeech() {
-        if (speechSupported()) {
-          try {
-            window.speechSynthesis.cancel();
-          } catch (_) {
-            /* ignore */
-          }
-        }
-        speechState = "idle";
-        updateSpeechUi();
-      }
-
-      function speakStory() {
-        if (!speechSupported()) {
-          updateSpeechUi();
-          return;
-        }
-        var raw = (els.storyText.textContent || "").trim();
-        if (!raw) {
-          updateSpeechUi();
-          return;
-        }
-
-        var spoken = cleanSpokenText(raw);
-        if (!spoken) return;
-
-        stopSpeech();
-        refreshPreferredVoice();
-
-        var utter = new SpeechSynthesisUtterance(spoken);
-        if (preferredVoice) {
-          utter.voice = preferredVoice;
-          utter.lang = preferredVoice.lang || pickSpeechLang();
-        } else {
-          utter.lang = pickSpeechLang();
-        }
-        utter.rate = 1;
-        utter.pitch = 1;
-
-        utter.onstart = function () {
-          speechState = "speaking";
-          updateSpeechUi();
-        };
-        utter.onend = function () {
-          speechState = "idle";
-          updateSpeechUi();
-        };
-        utter.onerror = function () {
-          speechState = "idle";
-          updateSpeechUi();
-        };
-
-        // Some browsers need a tick after cancel before speak
-        setTimeout(function () {
-          try {
-            window.speechSynthesis.speak(utter);
-            speechState = "speaking";
-            updateSpeechUi();
-          } catch (_) {
-            speechState = "idle";
-            els.speechHint.textContent = "Could not start narration. Try again.";
-            updateSpeechUi();
-          }
-        }, 40);
-      }
-
-      function togglePauseSpeech() {
-        if (!speechSupported()) return;
-        var synth = window.speechSynthesis;
-        if (speechState === "speaking") {
-          try {
-            synth.pause();
-            speechState = "paused";
-          } catch (_) {
-            stopSpeech();
-            return;
-          }
-        } else if (speechState === "paused") {
-          try {
-            synth.resume();
-            speechState = "speaking";
-          } catch (_) {
-            stopSpeech();
-            return;
-          }
-        }
-        updateSpeechUi();
-      }
-
-      function getApiKey() {
-        try {
-          return (localStorage.getItem(STORAGE_KEY) || "").trim();
-        } catch (_) {
-          return "";
-        }
-      }
-
-      function setApiKey(key) {
-        try {
-          if (key) {
-            localStorage.setItem(STORAGE_KEY, key);
-          } else {
-            localStorage.removeItem(STORAGE_KEY);
-          }
-        } catch (_) {
-          /* ignore quota / private mode */
-        }
-        updateKeyUi();
-      }
-
-      function getStoryModel() {
-        try {
-          var stored = (localStorage.getItem(MODEL_STORAGE_KEY) || "").trim();
-          if (stored === MODEL_QUALITY || stored === MODEL_ECONOMY) {
-            return stored;
-          }
-        } catch (_) {
-          /* ignore */
-        }
-        return DEFAULT_MODEL;
-      }
-
-      function setStoryModel(model) {
-        var next =
-          model === MODEL_ECONOMY ? MODEL_ECONOMY : MODEL_QUALITY;
-        try {
-          localStorage.setItem(MODEL_STORAGE_KEY, next);
-        } catch (_) {
-          /* ignore quota / private mode */
-        }
-        syncModelRadios();
-      }
-
-      function syncModelRadios() {
-        var model = getStoryModel();
-        if (els.modelQuality) els.modelQuality.checked = model === MODEL_QUALITY;
-        if (els.modelEconomy) els.modelEconomy.checked = model === MODEL_ECONOMY;
-      }
-
-      function updateKeyUi() {
-        const hasKey = !!getApiKey();
-        els.keyDot.classList.toggle("set", hasKey);
-        updateGenerateButton();
-      }
-
-      function openKeyModal(force) {
-        els.apiKeyInput.value = getApiKey();
-        syncModelRadios();
-        els.keyModal.classList.add("open");
-        if (force || !getApiKey()) {
-          setTimeout(function () {
-            els.apiKeyInput.focus();
-          }, 50);
-        }
-      }
-
-      function closeKeyModal() {
-        els.keyModal.classList.remove("open");
-        els.apiKeyInput.value = "";
-      }
-
-      function formatCoord(n) {
-        return Number(n).toFixed(6);
-      }
-
-      function setStatus(msg, isError) {
-        els.status.textContent = msg || "";
-        els.status.classList.toggle("error", !!isError);
-      }
-
-      function setGeoBanner(msg, kind) {
-        if (!msg) {
-          els.geoBanner.hidden = true;
-          els.geoBanner.textContent = "";
-          els.geoBanner.classList.remove("error", "ok");
-          return;
-        }
-        els.geoBanner.hidden = false;
-        els.geoBanner.textContent = msg;
-        els.geoBanner.classList.toggle("error", kind === "error");
-        els.geoBanner.classList.toggle("ok", kind === "ok");
-      }
-
-      function clearStory() {
-        stopSpeech();
-        els.storyBlock.classList.remove("visible");
-        els.storyLoading.classList.remove("visible");
-        els.storyError.classList.remove("visible");
-        els.storyError.textContent = "";
-        els.storyText.hidden = true;
-        els.storyText.textContent = "";
-        els.speechControls.classList.remove("visible");
-        updateSpeechUi();
-      }
-
-      function updateGenerateButton() {
-        const hasKey = !!getApiKey();
-        const hasFocus =
-          currentSelection &&
-          currentSelection.focus &&
-          currentSelection.focus.label;
-        els.generateBtn.disabled = !(hasKey && hasFocus);
-        if (!hasKey) {
-          els.generateBtn.title = "Add your OpenAI API key to generate a story";
-        } else if (!hasFocus) {
-          els.generateBtn.title = "Select a story focus first";
-        } else {
-          els.generateBtn.title =
-            "Generate a history story for this place and nearby surroundings";
-        }
-      }
-
-      function showLocation(lat, lng, label) {
-        const latNum = Number(lat);
-        const lngNum = Number(lng);
-
-        if (marker) {
-          marker.setLatLng([latNum, lngNum]);
-        } else {
-          marker = L.marker([latNum, lngNum]).addTo(map);
-        }
-
-        els.lat.textContent = formatCoord(latNum);
-        els.lng.textContent = formatCoord(lngNum);
-
-        els.embed.src =
-          "https://maps.google.com/maps?q=" +
-          latNum +
-          "," +
-          lngNum +
-          "&z=16&output=embed";
-
-        els.streetView.href =
-          "https://www.google.com/maps/@" +
-          latNum +
-          "," +
-          lngNum +
-          ",3a,90y,0h,90t/data=!3m6!1e1";
-
-        els.gmaps.href =
-          "https://www.google.com/maps/search/?api=1&query=" +
-          latNum +
-          "," +
-          lngNum;
-
-        if (label) {
-          els.placeName.textContent = label;
-          els.placeName.hidden = false;
-        } else {
-          els.placeName.textContent = "";
-          els.placeName.hidden = true;
-        }
-
-        els.placeholder.classList.add("hidden");
-        els.content.classList.add("active");
-
-        if (nearbyAbort) {
-          nearbyAbort.abort();
-          nearbyAbort = null;
-        }
-
-        currentSelection = {
-          lat: latNum,
-          lng: lngNum,
-          displayName: label || "",
-          address: null,
-          focus: null,
-          options: [],
-        };
-
-        els.focusOptions.innerHTML = "";
-        els.focusConfirm.classList.remove("visible");
-        els.focusConfirm.textContent = "";
-        els.reverseStatus.textContent = "Looking up address…";
-        els.reverseStatus.classList.remove("error");
-        clearStory();
-        updateGenerateButton();
-
-        reverseGeocode(latNum, lngNum, label);
-      }
-
-      function buildFocusOptions(address, displayName) {
-        const options = [];
-        const road = address.road || address.pedestrian || address.footway || address.path || "";
-        const house =
-          address.house_number ||
-          address.housenumber ||
-          "";
-        const neighbourhood =
-          address.neighbourhood ||
-          address.suburb ||
-          address.quarter ||
-          address.city_district ||
-          address.district ||
-          "";
-        const city =
-          address.city ||
-          address.town ||
-          address.village ||
-          address.municipality ||
-          address.county ||
-          "";
-
-        if (house && road) {
-          options.push({
-            id: "house",
-            title: "This house / building",
-            detail: road + " " + house + (city ? ", " + city : ""),
-            label: road + " " + house + (city ? ", " + city : ""),
-            kind: "house",
-          });
-        }
-
-        if (road) {
-          options.push({
-            id: "street",
-            title: "This street",
-            detail: road + (city ? ", " + city : ""),
-            label: road + (city ? ", " + city : ""),
-            kind: "street",
-          });
-        }
-
-        if (neighbourhood) {
-          options.push({
-            id: "area",
-            title: "This neighbourhood / area",
-            detail: neighbourhood + (city ? ", " + city : ""),
-            label: neighbourhood + (city ? ", " + city : ""),
-            kind: "area",
-          });
-        } else if (city) {
-          options.push({
-            id: "area",
-            title: "This neighbourhood / area",
-            detail: city,
-            label: city,
-            kind: "area",
-          });
-        }
-
-        if (!options.length && displayName) {
-          options.push({
-            id: "place",
-            title: "This place",
-            detail: displayName,
-            label: displayName,
-            kind: "place",
-          });
-        }
-
-        if (!options.length) {
-          options.push({
-            id: "coords",
-            title: "This location",
-            detail: "Coordinates only (no address found)",
-            label: "location near " + formatCoord(currentSelection.lat) + ", " + formatCoord(currentSelection.lng),
-            kind: "coords",
-          });
-        }
-
-        return options;
-      }
-
-      function renderFocusOptions(options) {
-        els.focusOptions.innerHTML = "";
-        options.forEach(function (opt, index) {
-          const label = document.createElement("label");
-          label.className = "focus-option" + (index === 0 ? " selected" : "");
-          label.setAttribute("for", "focus-" + opt.id);
-
-          const input = document.createElement("input");
-          input.type = "radio";
-          input.name = "story-focus";
-          input.id = "focus-" + opt.id;
-          input.value = opt.id;
-          input.checked = index === 0;
-
-          const text = document.createElement("div");
-          const title = document.createElement("div");
-          title.className = "focus-label";
-          title.textContent = opt.title;
-          const detail = document.createElement("div");
-          detail.className = "focus-detail";
-          detail.textContent = opt.detail;
-          text.appendChild(title);
-          text.appendChild(detail);
-
-          label.appendChild(input);
-          label.appendChild(text);
-          els.focusOptions.appendChild(label);
-
-          input.addEventListener("change", function () {
-            selectFocus(opt);
-            els.focusOptions.querySelectorAll(".focus-option").forEach(function (el) {
-              el.classList.toggle("selected", el === label);
-            });
-          });
-        });
-
-        if (options.length) {
-          selectFocus(options[0]);
-        }
-      }
-
-      function selectFocus(opt) {
-        if (!currentSelection) return;
-        currentSelection.focus = opt;
-        els.focusConfirm.textContent = "Selected: " + opt.label;
-        els.focusConfirm.classList.add("visible");
-        clearStory();
-        updateGenerateButton();
-      }
-
-      function haversineMeters(lat1, lng1, lat2, lng2) {
-        var R = 6371000;
-        var toRad = Math.PI / 180;
-        var dLat = (lat2 - lat1) * toRad;
-        var dLng = (lng2 - lng1) * toRad;
-        var a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos(lat1 * toRad) *
-            Math.cos(lat2 * toRad) *
-            Math.sin(dLng / 2) *
-            Math.sin(dLng / 2);
-        return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
-      }
-
-      function isUsefulNearbyHit(item, name) {
-        if (!name || name.length < 2) return false;
-        var lower = name.toLowerCase();
-        if (lower === "yes" || lower === "no" || lower === "unnamed") return false;
-        var cls = String(item.class || "").toLowerCase();
-        var typ = String(item.type || "").toLowerCase();
-        if (!NEARBY_ALLOWED_CLASSES[cls]) return false;
-        if (NEARBY_SKIP_TYPES[typ]) return false;
-        return true;
-      }
-
-      /**
-       * Nearby Nominatim search (~700 m). Returns named historic/tourism/
-       * amenity/building-class hits with haversine distance; fail-soft.
-       */
-      async function fetchNearbyPlaces(lat, lng, areaHint, signal) {
-        var d = NEARBY_DELTA_DEG;
-        var viewbox =
-          lng - d + "," + (lat + d) + "," + (lng + d) + "," + (lat - d);
-        // Prefer a local area phrase so Nominatim returns named places in-box
-        // rather than a global keyword hit.
-        var q = (areaHint && String(areaHint).trim())
-          ? String(areaHint).trim() + " museum memorial monument church park"
-          : "museum memorial monument church park";
-        var url =
-          "https://nominatim.openstreetmap.org/search?format=json&limit=12&bounded=1" +
-          "&addressdetails=0&dedupe=1&namedetails=1" +
-          "&viewbox=" +
-          encodeURIComponent(viewbox) +
-          "&q=" +
-          encodeURIComponent(q);
-
-        try {
-          var res = await fetch(url, {
-            headers: NOMINATIM_HEADERS,
-            signal: signal,
-          });
-          if (!res.ok) return [];
-          var data = await res.json();
-          if (!Array.isArray(data)) return [];
-          var seen = {};
-          var places = [];
-          data.forEach(function (item) {
-            var name =
-              (item.namedetails && item.namedetails.name) ||
-              item.name ||
-              (item.display_name ? item.display_name.split(",")[0] : "") ||
-              "";
-            name = String(name).trim();
-            if (!isUsefulNearbyHit(item, name)) return;
-            var itemLat = parseFloat(item.lat);
-            var itemLng = parseFloat(item.lon);
-            if (!isFinite(itemLat) || !isFinite(itemLng)) return;
-            var distM = Math.round(haversineMeters(lat, lng, itemLat, itemLng));
-            if (distM > NEARBY_MAX_M) return;
-            var key = name.toLowerCase();
-            if (seen[key]) return;
-            seen[key] = true;
-            var typeHint = [item.class, item.type].filter(Boolean).join("/");
-            places.push({
-              name: name,
-              type: typeHint || "",
-              display_name: item.display_name || name,
-              dist_m: distM,
-              lat: itemLat,
-              lng: itemLng,
-            });
-          });
-          places.sort(function (a, b) {
-            return a.dist_m - b.dist_m;
-          });
-          return places.slice(0, 8);
-        } catch (err) {
-          if (err && err.name === "AbortError") throw err;
-          return [];
-        }
-      }
-
-      function formatNearbyForPrompt(places) {
-        if (!places || !places.length) {
-          return (
-            "(EMPTY ALLOW-LIST — no verified named places within ~" +
-            NEARBY_MAX_M +
-            " m. Do NOT invent landmarks. Say you lack verified nearby places from map data.)"
-          );
-        }
-        return places
-          .map(function (p, i) {
-            return (
-              "  " +
-              (i + 1) +
-              ") " +
-              p.name +
-              " — " +
-              p.dist_m +
-              " m" +
-              (p.type ? " [" + p.type + "]" : "") +
-              (p.display_name && p.display_name !== p.name
-                ? " — " + p.display_name
-                : "")
-            );
-          })
-          .join("\n");
-      }
-
-      async function reverseGeocode(lat, lng, fallbackLabel) {
-        if (reverseAbort) {
-          reverseAbort.abort();
-        }
-        reverseAbort = new AbortController();
-
-        try {
-          const url =
-            "https://nominatim.openstreetmap.org/reverse?lat=" +
-            encodeURIComponent(lat) +
-            "&lon=" +
-            encodeURIComponent(lng) +
-            "&format=json&addressdetails=1&zoom=18";
-
-          const res = await fetch(url, {
-            headers: NOMINATIM_HEADERS,
-            signal: reverseAbort.signal,
-          });
-
-          if (!res.ok) throw new Error("Reverse geocode failed");
-
-          const data = await res.json();
-          if (!currentSelection || currentSelection.lat !== lat || currentSelection.lng !== lng) {
-            return;
-          }
-
-          const address = data.address || {};
-          const displayName = data.display_name || fallbackLabel || "";
-          currentSelection.address = address;
-          currentSelection.displayName = displayName;
-
-          if (displayName) {
-            els.placeName.textContent = displayName;
-            els.placeName.hidden = false;
-          }
-
-          const options = buildFocusOptions(address, displayName);
-          currentSelection.options = options;
-          els.reverseStatus.textContent = "";
-          renderFocusOptions(options);
-        } catch (err) {
-          if (err && err.name === "AbortError") return;
-          els.reverseStatus.textContent = "Could not look up address. You can still pick a focus from coordinates.";
-          els.reverseStatus.classList.add("error");
-          if (!currentSelection) return;
-          const options = buildFocusOptions({}, fallbackLabel || "");
-          currentSelection.options = options;
-          renderFocusOptions(options);
-        }
-      }
-
-      function placeYouAreHere(lat, lng) {
-        const icon = L.divIcon({
-          className: "you-are-here-icon",
-          html: '<div class="you-are-here-dot" title="You are here"></div>',
-          iconSize: [18, 18],
-          iconAnchor: [9, 9],
-        });
-
-        if (youAreHereMarker) {
-          youAreHereMarker.setLatLng([lat, lng]);
-        } else {
-          youAreHereMarker = L.marker([lat, lng], {
-            icon: icon,
-            zIndexOffset: 1000,
-            title: "You are here",
-          }).addTo(map);
-        }
-      }
-
-      function requestLocation(fromButton) {
-        if (!navigator.geolocation) {
-          setGeoBanner(
-            "Geolocation is not supported in this browser. Click the map or search instead.",
-            "error"
-          );
-          return;
-        }
-
-        if (fromButton) {
-          els.locateBtn.disabled = true;
-          setGeoBanner("Finding your location…");
-        }
-
-        navigator.geolocation.getCurrentPosition(
-          function (pos) {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            placeYouAreHere(lat, lng);
-            map.flyTo([lat, lng], 16, { duration: 1.2 });
-            setGeoBanner("Map centered on your location. Blue marker = you are here.", "ok");
-            els.locateBtn.disabled = false;
-            if (fromButton) {
-              showLocation(lat, lng);
-            }
-          },
-          function (err) {
-            els.locateBtn.disabled = false;
-            var msg =
-              "Location unavailable. You can still explore by clicking the map or searching.";
-            if (err && err.code === 1) {
-              msg =
-                "Location permission denied. Click the map or search a place — the map still works.";
-            } else if (err && err.code === 2) {
-              msg =
-                "Your location could not be determined. Click the map or search instead.";
-            } else if (err && err.code === 3) {
-              msg =
-                "Location request timed out. Try “Use my location” again, or click/search.";
-            }
-            setGeoBanner(msg, fromButton ? "error" : "error");
-          },
-          {
-            enableHighAccuracy: false,
-            timeout: 12000,
-            maximumAge: 60000,
-          }
-        );
-      }
-
-      async function generateStory() {
-        const key = getApiKey();
-        if (!key) {
-          openKeyModal(true);
-          setGeoBanner("Add your OpenAI API key to generate stories.", "error");
-          return;
-        }
-        if (!currentSelection || !currentSelection.focus) {
-          return;
-        }
-
-        const focus = currentSelection.focus;
-        const lat = currentSelection.lat;
-        const lng = currentSelection.lng;
-
-        els.storyBlock.classList.add("visible");
-        els.storyLoading.classList.add("visible");
-        els.storyError.classList.remove("visible");
-        els.storyError.textContent = "";
-        els.storyText.hidden = true;
-        els.storyText.textContent = "";
-        stopSpeech();
-        els.speechControls.classList.remove("visible");
-        els.generateBtn.disabled = true;
-
-        const addr = currentSelection.address || {};
-        const road =
-          addr.road || addr.pedestrian || addr.footway || addr.path || "";
-        const houseNumber = addr.house_number || addr.housenumber || "";
-        const neighbourhood = addr.neighbourhood || "";
-        const suburb = addr.suburb || "";
-        const quarter = addr.quarter || "";
-        const cityDistrict =
-          addr.city_district || addr.district || addr.borough || "";
-        const suburbOrHood =
-          neighbourhood || suburb || quarter || cityDistrict || "";
-        const city =
-          addr.city ||
-          addr.town ||
-          addr.village ||
-          addr.municipality ||
-          addr.county ||
-          "";
-        const state = addr.state || addr.region || "";
-        const postcode = addr.postcode || "";
-        const country = addr.country || "";
-        const buildingTag = addr.building || "";
-        const amenityTag = addr.amenity || "";
-        const tourismTag = addr.tourism || "";
-        const historicTag = addr.historic || "";
-
-        if (nearbyAbort) {
-          nearbyAbort.abort();
-        }
-        nearbyAbort = new AbortController();
-        var nearbyPlaces = [];
-        try {
-          nearbyPlaces = await fetchNearbyPlaces(
-            lat,
-            lng,
-            suburbOrHood || city || road,
-            nearbyAbort.signal
-          );
-        } catch (nearbyErr) {
-          if (nearbyErr && nearbyErr.name === "AbortError") {
-            updateGenerateButton();
-            return;
-          }
-          nearbyPlaces = [];
-        }
-
-        const systemPrompt =
-          "You are a professional walking-tour guide — the kind visitors remember. " +
-          "Write vivid, engaging, ChatGPT-quality city-guide storytelling: a curious visitor " +
-          "is standing at this exact pin right now. Open with a hook tied to the selected place " +
-          "(street name, building, or neighbourhood), then walk them through specific historical " +
-          "texture — named people, events, architectural styles, eras, former trades or residents — " +
-          "when you actually know them for this street, building, or district. Weave the focus " +
-          "(street / building / neighbourhood) and any allow-listed nearby places into one flowing " +
-          "narrative; do not dump three stiff labeled sections unless a brief label truly helps.\n\n" +
-          "Length: about 350–500 words, or 2–3 short spoken-friendly paragraphs — enough to feel " +
-          "worthwhile for reading aloud (TTS) and on foot. Sensory walking-tour tone: what you " +
-          "might notice on the façades, the rhythm of the street, why this corner matters. " +
-          "Memorable anecdotes and pacing beat dry bullet lists or vague filler.\n\n" +
-          "GEOGRAPHY GROUNDING (strict — never violate):\n" +
-          "- The user message includes a STRICT NEARBY ALLOW-LIST from OpenStreetMap Nominatim " +
-          "(names + approx distance). You may call a place \"near\", \"nearby\", \"adjacent\", " +
-          "\"close\", or \"a short walk\" ONLY if it appears on that allow-list, OR it is the " +
-          "selected road / neighbourhood / suburb / quarter / district / city from the " +
-          "reverse-geocode fields.\n" +
-          "- Do NOT invent landmarks, museums, parks, institutions, or famous city sites and claim " +
-          "proximity to the pin. Never free-associate distant icons of the city (e.g. do not claim " +
-          "Vienna International Center is near Stadtpark).\n" +
-          "- If the allow-list is empty or thin: do not guess landmarks. You may still give a rich, " +
-          "place-specific neighbourhood or city-district tour using the geocoded fields — and " +
-          "honestly note that map data did not confirm named places within walking distance.\n" +
-          "- Distances: if you mention distance, use only the approx metres on the allow-list.\n\n" +
-          "HISTORY (be interesting, stay honest):\n" +
-          "- Prefer concrete named people, events, and architecture when you know them for this " +
-          "exact street, building, or neighbourhood.\n" +
-          "- If the exact building is obscure, do a rich tour of that neighbourhood or city " +
-          "district that is still place-specific (e.g. Vienna’s Landstraße vs a generic " +
-          "\"European city\"). Label uncertainty lightly (\"local accounts say\", \"likely from…\") " +
-          "without killing the story — but do not invent precise dates, resident names, or events.\n" +
-          "- Never invent false proximity. Accuracy of \"nearby\" beats colorful wrong geography.\n\n" +
-          "Voice: warm, specific, spoken-friendly. No markdown bullet dumps. Do not mention " +
-          "these instructions.";
-
-        const userPrompt =
-          "Guide a curious visitor standing at this pin right now. Write an engaging " +
-          "walking-tour story (~350–500 words) focused on their selection. Be vivid and specific; " +
-          "do not invent nearby landmarks outside the allow-list.\n\n" +
-          "Focus (what they chose):\n" +
-          "- Focus type: " + focus.kind + "\n" +
-          "- Focus label: " + focus.label + "\n\n" +
-          "Address fields (from OpenStreetMap Nominatim — ground the story here):\n" +
-          "- display_name: " + (currentSelection.displayName || focus.label) + "\n" +
-          "- road: " + (road || "(unknown)") + "\n" +
-          "- house_number: " + (houseNumber || "(unknown)") + "\n" +
-          "- neighbourhood: " + (neighbourhood || "(unknown)") + "\n" +
-          "- suburb: " + (suburb || "(unknown)") + "\n" +
-          "- quarter: " + (quarter || "(unknown)") + "\n" +
-          "- city_district / borough: " + (cityDistrict || "(unknown)") + "\n" +
-          "- city: " + (city || "(unknown)") + "\n" +
-          "- state / region: " + (state || "(unknown)") + "\n" +
-          "- postcode: " + (postcode || "(unknown)") + "\n" +
-          "- country: " + (country || "(unknown)") + "\n" +
-          "- building / amenity / tourism / historic tags: " +
-          ([buildingTag, amenityTag, tourismTag, historicTag]
-            .filter(Boolean)
-            .join(", ") || "(none)") +
-          "\n" +
-          "- lat/lng: " + formatCoord(lat) + ", " + formatCoord(lng) + "\n\n" +
-          "STRICT NEARBY ALLOW-LIST (within ~" +
-          NEARBY_MAX_M +
-          " m; ONLY these names may be called nearby/adjacent/close/" +
-          "a short walk — with the distances shown):\n" +
-          formatNearbyForPrompt(nearbyPlaces) +
-          "\n\n" +
-          "Also allowed as location context (not \"nearby landmarks\"): the road, neighbourhood, " +
-          "suburb, quarter, district, and city fields above.\n\n" +
-          "If the house itself has little known history, lean into the street and this " +
-          "neighbourhood’s character with concrete local detail — not invented far landmarks. " +
-          "If the allow-list is empty, say map data did not confirm named places within walking " +
-          "distance, then keep storytelling rich and place-specific.";
-
-        try {
-          const res = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + key,
-            },
-            body: JSON.stringify({
-              model: getStoryModel(),
-              temperature: 0.7,
-              max_tokens: 1200,
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt },
-              ],
-            }),
-          });
-
-          let body = null;
-          try {
-            body = await res.json();
-          } catch (_) {
-            body = null;
-          }
-
-          if (!res.ok) {
-            var errMsg = "Could not generate story.";
-            if (res.status === 401) {
-              errMsg = "Invalid API key. Update it in settings and try again.";
-            } else if (res.status === 429) {
-              errMsg = "Rate limit reached. Wait a moment and try again.";
-            } else if (res.status === 403) {
-              errMsg =
-                "Request blocked (403). Check your OpenAI account access, or try again later.";
-            } else if (body && body.error && body.error.message) {
-              errMsg = body.error.message;
-            } else if (!res.ok && res.type === "opaque") {
-              errMsg = "Network or CORS issue reaching OpenAI from the browser.";
-            }
-            throw new Error(errMsg);
-          }
-
-          const text =
-            body &&
-            body.choices &&
-            body.choices[0] &&
-            body.choices[0].message &&
-            body.choices[0].message.content;
-
-          if (!text) {
-            throw new Error("No story returned. Try again.");
-          }
-
-          els.storyLoading.classList.remove("visible");
-          els.storyText.textContent = text.trim();
-          els.storyText.hidden = false;
-          els.speechControls.classList.add("visible");
-          updateSpeechUi();
-          // Offer listen after generation (user gesture still required to play)
-          setTimeout(function () {
-            if (els.speechPlayBtn && !els.speechPlayBtn.disabled) {
-              els.speechPlayBtn.focus();
-            }
-          }, 50);
-        } catch (err) {
-          els.storyLoading.classList.remove("visible");
-          var message =
-            (err && err.message) ||
-            "Network error. Check your connection and that OpenAI allows browser requests.";
-          if (err && err.name === "TypeError") {
-            message =
-              "Network or CORS error calling OpenAI from the browser. Check your connection; " +
-              "OpenAI usually allows user-key browser calls — if blocked, a proxy would be needed (not included here).";
-          }
-          els.storyError.textContent = message;
-          els.storyError.classList.add("visible");
-        } finally {
-          updateGenerateButton();
-        }
-      }
-
-      map.on("click", function (e) {
-        showLocation(e.latlng.lat, e.latlng.lng);
-        setStatus("");
-      });
-
-      els.form.addEventListener("submit", async function (e) {
-        e.preventDefault();
-        const q = els.input.value.trim();
-        if (!q) return;
-
-        els.btn.disabled = true;
-        setStatus("Searching…");
-
-        try {
-          const url =
-            "https://nominatim.openstreetmap.org/search?q=" +
-            encodeURIComponent(q) +
-            "&format=json&addressdetails=1&limit=1";
-
-          const res = await fetch(url, {
-            headers: NOMINATIM_HEADERS,
-          });
-
-          if (!res.ok) throw new Error("Geocoder request failed");
-
-          const data = await res.json();
-          if (!data || !data.length) {
-            setStatus("No results found.", true);
-            return;
-          }
-
-          const hit = data[0];
-          const lat = parseFloat(hit.lat);
-          const lng = parseFloat(hit.lon);
-
-          map.flyTo([lat, lng], 15, { duration: 1.2 });
-          showLocation(lat, lng, hit.display_name);
-          setStatus("");
-        } catch (err) {
-          setStatus("Search failed. Try again.", true);
-        } finally {
-          els.btn.disabled = false;
-        }
-      });
-
-      els.locateBtn.addEventListener("click", function () {
-        requestLocation(true);
-      });
-
-      els.settingsBtn.addEventListener("click", function () {
-        openKeyModal(false);
-      });
-
-      els.saveKeyBtn.addEventListener("click", function () {
-        const key = els.apiKeyInput.value.trim() || getApiKey();
-        if (!key) {
-          els.apiKeyInput.focus();
-          return;
-        }
-        var chosenModel =
-          els.modelEconomy && els.modelEconomy.checked
-            ? MODEL_ECONOMY
-            : MODEL_QUALITY;
-        setStoryModel(chosenModel);
-        setApiKey(key);
-        closeKeyModal();
-        setGeoBanner(
-          "API key saved (" +
-            (chosenModel === MODEL_ECONOMY ? "Economy" : "Quality") +
-            " model). Key stays in this browser only.",
-          "ok"
-        );
-      });
-
-      els.clearKeyBtn.addEventListener("click", function () {
-        setApiKey("");
-        els.apiKeyInput.value = "";
-        updateGenerateButton();
-        setGeoBanner("API key cleared from this browser.", "ok");
-      });
-
-      els.closeKeyBtn.addEventListener("click", closeKeyModal);
-
-      els.keyModal.addEventListener("click", function (e) {
-        if (e.target === els.keyModal) closeKeyModal();
-      });
-
-      document.addEventListener("keydown", function (e) {
-        if (e.key === "Escape" && els.keyModal.classList.contains("open")) {
-          closeKeyModal();
-        }
-      });
-
-      els.generateBtn.addEventListener("click", function () {
-        if (!getApiKey()) {
-          openKeyModal(true);
-          return;
-        }
-        generateStory();
-      });
-
-      els.speechPlayBtn.addEventListener("click", function () {
-        speakStory();
-      });
-
-      els.speechPauseBtn.addEventListener("click", function () {
-        togglePauseSpeech();
-      });
-
-      els.speechStopBtn.addEventListener("click", function () {
-        stopSpeech();
-      });
-
-      if (speechSupported()) {
-        window.speechSynthesis.addEventListener("voiceschanged", function () {
-          refreshPreferredVoice();
-        });
-        refreshPreferredVoice();
-        // Chrome sometimes leaves speech stuck after page hide; reset UI
-        document.addEventListener("visibilitychange", function () {
-          if (document.hidden) return;
-          if (
-            speechSupported() &&
-            !window.speechSynthesis.speaking &&
-            !window.speechSynthesis.paused &&
-            speechState !== "idle"
-          ) {
-            speechState = "idle";
-            updateSpeechUi();
-          }
-        });
-      }
-
-      updateSpeechUi();
-      updateKeyUi();
-      syncModelRadios();
-
-      if (!getApiKey()) {
-        setTimeout(function () {
-          openKeyModal(true);
-        }, 400);
-      }
-
-      // Optional auto-request; deny is handled gracefully
-      requestLocation(false);
-
-      setTimeout(function () {
-        map.invalidateSize();
-      }, 0);
-
-      window.addEventListener("resize", function () {
-        map.invalidateSize();
-      });
-    })();
-  </script>
+  <script type="module" src="./js/app.js"></script>
 </body>
 </html>
