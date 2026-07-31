@@ -68,5 +68,5 @@ export const TOUR_RESPONSE_SCHEMA_HINT = `{
   },
   "citations": [{"title":"","url":"","publisher":"","tier":"official"}],
   "errors": [],
-  "meta": { "pipeline_version": "2.1.0", "model": "", "research_available": false }
+  "meta": { "pipeline_version": "2.1.1", "model": "", "research_available": false }
 }`;

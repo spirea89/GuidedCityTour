@@ -54,7 +54,7 @@ export class ResearchService {
         packet.meta.model = this.openAi.model;
         return { ok: true, mode: "web_search", packet };
       }
-      // JSON failed but we had search — try chat to structure (still grounded by text)
+      // JSON failed but we had search - try chat to structure (still grounded by text)
       const structured = await this._structureFromText(
         responsesResult.text,
         place,
@@ -63,7 +63,7 @@ export class ResearchService {
       if (structured.ok) return structured;
     }
 
-    // Degraded path — Chat Completions, explicit no fabrication
+    // Degraded path - Chat Completions, explicit no fabrication
     const degraded = await this._degradedNoSearch(place, {
       categories,
       kidsMode,
@@ -94,7 +94,7 @@ export class ResearchService {
           }),
       },
     ];
-    // Some models reject "developer" — map to system if needed
+    // Some models reject "developer" - map to system if needed
     const safeMessages = messages.map((m) =>
       m.role === "developer"
         ? { role: "system", content: m.content }
@@ -188,12 +188,12 @@ export class ResearchService {
         },
         narration: {
           adult:
-            "I can see this place on the map as “" +
+            "I can see this place on the map as "" +
             (place.name || "an unnamed location") +
-            "”, but I could not run web research from this browser, so I will not invent a history for it. " +
+            "", but I could not run web research from this browser, so I will not invent a history for it. " +
             WEB_SEARCH_UNAVAILABLE_HINT,
           kids:
-            "We found this place on the map, but we could not safely check real history online right now — so we will not make a story up.",
+            "We found this place on the map, but we could not safely check real history online right now - so we will not make a story up.",
           sections: {},
         },
         citations: [],

@@ -8,7 +8,7 @@ import { NEARBY_MAX_M } from "../config.js";
 export class PromptBuilder {
   systemPrompt() {
     return (
-      "You are GuidedCityTour’s research-and-narration engine for walking tours.\n\n" +
+      "You are GuidedCityTour's research-and-narration engine for walking tours.\n\n" +
       "ROLE\n" +
       "- You reason over provided map data and (when available) web-search results.\n" +
       "- You are NOT the source of truth for history. Verified claims require sources.\n" +
@@ -17,17 +17,17 @@ export class PromptBuilder {
       "  Prefer primary or official pages over blogs, forums, and travel listicles.\n\n" +
       "HARD RULES\n" +
       "1. Never invent dates, people, events, architectural attributions, or nearby landmarks.\n" +
-      "2. “Nearby / adjacent / a short walk” ONLY for names on the OSM allow-list " +
+      "2. "Nearby / adjacent / a short walk" ONLY for names on the OSM allow-list " +
       "(or the selected road / neighbourhood / city fields).\n" +
       "3. Adult narration may use verified claims freely, and may include a clearly " +
-      "labeled “Legends & local stories” section only from claims.legends.\n" +
+      "labeled "Legends & local stories" section only from claims.legends.\n" +
       "4. Kids narration: verified claims only; simpler language; no invented stories.\n" +
       "5. Write ALL narration text in English (narration.adult, narration.kids, " +
-      "narration.sections, and any spoken guide text), regardless of the place’s " +
+      "narration.sections, and any spoken guide text), regardless of the place's " +
       "country or local language. Proper nouns and place names may stay in their " +
       "local form.\n" +
       "6. Category sections (History, Architecture, Personalities/famous_people, " +
-      "Interesting facts, Today, Kids) must contain ONLY verified facts for that topic — " +
+      "Interesting facts, Today, Kids) must contain ONLY verified facts for that topic - " +
       "never pad with guesses.\n" +
       "7. Output MUST be a single JSON object matching the schema. No markdown fences.\n" +
       "8. If web search is unavailable, do not fill verified claims from model memory."
@@ -54,7 +54,7 @@ export class PromptBuilder {
     }
     if (mode === "degraded_no_search") {
       return (
-        "Mode: DEGRADED — WEB SEARCH UNAVAILABLE\n" +
+        "Mode: DEGRADED - WEB SEARCH UNAVAILABLE\n" +
         "You must NOT invent historical facts from training memory.\n" +
         "Set status to web_search_unavailable.\n" +
         "claims.verified MUST be []. Put gaps in claims.unknown.\n" +
@@ -83,7 +83,7 @@ export class PromptBuilder {
     const nearby = place.nearbyAllowList || [];
     const nearbyText =
       nearby.length === 0
-        ? "(EMPTY ALLOW-LIST — do NOT invent landmarks within ~" +
+        ? "(EMPTY ALLOW-LIST - do NOT invent landmarks within ~" +
           NEARBY_MAX_M +
           " m.)"
         : nearby
@@ -93,7 +93,7 @@ export class PromptBuilder {
                 (i + 1) +
                 ") " +
                 p.name +
-                " — " +
+                " - " +
                 p.dist_m +
                 " m" +
                 (p.type ? " [" + p.type + "]" : "")
@@ -102,11 +102,11 @@ export class PromptBuilder {
 
     const focus = place.focus || {};
     return (
-      "Place context (OpenStreetMap / Nominatim — identity source):\n" +
+      "Place context (OpenStreetMap / Nominatim - identity source):\n" +
       JSON.stringify(placeToJson(place), null, 2) +
       "\n\nFocus: " +
       (focus.kind || "place") +
-      " — " +
+      " - " +
       (focus.label || place.name) +
       "\n\nNearby allow-list (ONLY these may be called nearby):\n" +
       nearbyText +
@@ -116,8 +116,8 @@ export class PromptBuilder {
       (kidsMode ? "true" : "false") +
       "\nResearch mode: " +
       researchMode +
-      "\nLanguage: English — write narration.adult, narration.kids, and narration.sections in English " +
-      "regardless of the place’s country or local language.\n" +
+      "\nLanguage: English - write narration.adult, narration.kids, and narration.sections in English " +
+      "regardless of the place's country or local language.\n" +
       "\nReturn JSON matching TourResponse schema. Deduplicate citations[] from verified sources."
     );
   }

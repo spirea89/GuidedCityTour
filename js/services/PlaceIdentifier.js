@@ -180,7 +180,7 @@ export class PlaceIdentifier {
         status === STATUS.UNIDENTIFIED
           ? "Could not identify a named place at this pin. Try searching or moving the marker."
           : status === STATUS.AMBIGUOUS_NAME
-            ? "Several names look plausible — confirm which place you mean before we research history."
+            ? "Several names look plausible - confirm which place you mean before we research history."
             : status === STATUS.NEEDS_CONFIRMATION
               ? "Identification confidence is low. Confirm the place name before research."
               : "Place identified from map data.",

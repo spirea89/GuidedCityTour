@@ -1,6 +1,6 @@
 /**
- * GuidedCityTour app shell — map, geolocation, OSM, TTS, API key modal.
- * Stories go through TourPipeline (identify → research → verify → narrate).
+ * GuidedCityTour app shell - map, geolocation, OSM, TTS, API key modal.
+ * Stories go through TourPipeline (identify -> research -> verify -> narrate).
  */
 import {
   APP_VERSION,
@@ -41,6 +41,11 @@ let speechState = "idle";
 let preferredVoice = null;
 let lastSpeakText = "";
 let pendingConfirm = null;
+let speechToken = 0;
+let speechTimer = null;
+let speechQueue = [];
+let speechIndex = 0;
+let speechPausedBetween = false;
 
 const els = {
   placeholder: document.getElementById("panel-placeholder"),
@@ -97,7 +102,7 @@ const renderer = new StoryRenderer(els);
 if (els.appVersion) els.appVersion.textContent = APP_VERSION;
 if (els.panelVersion) {
   els.panelVersion.textContent =
-    "GuidedCityTour " + APP_VERSION + " · " + APP_VERSION_DATE;
+    "GuidedCityTour " + APP_VERSION + " | " + APP_VERSION_DATE;
 }
 
 renderCategoryOptions();
@@ -148,7 +153,7 @@ function cleanSpokenText(raw) {
   text = text.replace(/\*\*([^*]+)\*\*/g, "$1");
   text = text.replace(/\*([^*]+)\*/g, "$1");
   text = text.replace(/^#{1,6}\s+/gm, "");
-  text = text.replace(/^[-*•]\s+/gm, "");
+  text = text.replace(/^[-*\u2022]\s+/gm, "");
   text = text.replace(/[ \t]+\n/g, "\n");
   text = text.replace(/\n{3,}/g, "\n\n");
   return text.trim();
@@ -156,6 +161,57 @@ function cleanSpokenText(raw) {
 
 /** GuidedCityTour always narrates in English regardless of locale / place. */
 const SPEECH_LANG = "en-US";
+/** Museum audio-guide pacing: calm, slightly slow, steady. */
+const SPEECH_RATE = 0.88;
+const SPEECH_PITCH = 0.95;
+const SPEECH_VOLUME = 1;
+const SPEECH_GAP_MS = 340;
+
+/** Prefer calm, clear English system voices when available. */
+const PREFERRED_VOICE_NEEDLES = [
+  ["google uk english female", 34],
+  ["microsoft aria", 32],
+  ["samantha", 32],
+  ["daniel", 30],
+  ["google uk english male", 30],
+  ["microsoft jenny", 30],
+  ["microsoft guy", 28],
+  ["google us english", 28],
+  ["microsoft davis", 26],
+  ["microsoft sona", 26],
+  ["karen", 24],
+  ["moira", 24],
+  ["serena", 22],
+  ["oliver", 20],
+  ["alex", 18],
+];
+
+function scoreMuseumVoice(v) {
+  const lang = (v.lang || "").toLowerCase().replace("_", "-");
+  const name = (v.name || "").toLowerCase();
+  let score = 0;
+  if (lang === "en-us" || lang.startsWith("en-us-")) score += 40;
+  else if (lang === "en-gb" || lang.startsWith("en-gb-")) score += 38;
+  else if (lang === "en" || lang.startsWith("en-")) score += 20;
+  else return -1;
+
+  for (let i = 0; i < PREFERRED_VOICE_NEEDLES.length; i++) {
+    if (name.indexOf(PREFERRED_VOICE_NEEDLES[i][0]) !== -1) {
+      score += PREFERRED_VOICE_NEEDLES[i][1];
+      break;
+    }
+  }
+  if (/\b(female|woman)\b/.test(name)) score += 4;
+  if (v.localService) score += 5;
+  if (
+    /novelty|whisper|zarvox|trinoids|bad news|pipe organ|cellos|bubbles|bahh|boing/.test(
+      name
+    )
+  ) {
+    score -= 50;
+  }
+  return score;
+}
 
 function refreshPreferredVoice() {
   if (!speechSupported()) return;
@@ -163,20 +219,41 @@ function refreshPreferredVoice() {
   let best = null;
   let bestScore = -1;
   for (let i = 0; i < voices.length; i++) {
-    const v = voices[i];
-    const lang = (v.lang || "").toLowerCase().replace("_", "-");
-    let score = 0;
-    if (lang === "en-us" || lang.startsWith("en-us-")) score += 4;
-    else if (lang === "en-gb" || lang.startsWith("en-gb-")) score += 3;
-    else if (lang === "en" || lang.startsWith("en-")) score += 2;
-    if (score > 0 && v.localService) score += 1;
+    const score = scoreMuseumVoice(voices[i]);
     if (score > bestScore) {
       bestScore = score;
       best = voices[i];
     }
   }
-  // Prefer any English voice; otherwise leave null and rely on utterance.lang.
   preferredVoice = bestScore > 0 ? best : null;
+}
+
+/** Split narration into paragraph/sentence chunks for guide-like pauses. */
+function splitSpokenChunks(text) {
+  const paragraphs = String(text)
+    .split(/\n\s*\n/)
+    .map(function (p) {
+      return p.replace(/\s+/g, " ").trim();
+    })
+    .filter(Boolean);
+  const chunks = [];
+  for (let p = 0; p < paragraphs.length; p++) {
+    const para = paragraphs[p];
+    const sentences = para.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [para];
+    let buf = "";
+    for (let s = 0; s < sentences.length; s++) {
+      const piece = sentences[s].trim();
+      if (!piece) continue;
+      if (buf && (buf + " " + piece).length > 280) {
+        chunks.push(buf);
+        buf = piece;
+      } else {
+        buf = buf ? buf + " " + piece : piece;
+      }
+    }
+    if (buf) chunks.push(buf);
+  }
+  return chunks.length ? chunks : [String(text).trim()];
 }
 
 function updateSpeechUi() {
@@ -205,13 +282,13 @@ function updateSpeechUi() {
   if (speechState === "speaking") {
     els.speechPauseBtn.disabled = !canPause;
     els.speechPauseBtn.textContent = "Pause";
-    els.speechHint.textContent = "Reading the story aloud…";
+    els.speechHint.textContent = "Reading the story aloud...";
     els.speechHint.classList.remove("pulse");
   } else if (speechState === "paused") {
     els.speechPlayBtn.disabled = true;
     els.speechPauseBtn.disabled = !canPause;
     els.speechPauseBtn.textContent = "Resume";
-    els.speechHint.textContent = "Paused — resume or stop narration.";
+    els.speechHint.textContent = "Paused - resume or stop narration.";
   } else {
     els.speechPauseBtn.disabled = true;
     els.speechPauseBtn.textContent = "Pause";
@@ -225,7 +302,19 @@ function updateSpeechUi() {
   }
 }
 
+function clearSpeechTimer() {
+  if (speechTimer) {
+    clearTimeout(speechTimer);
+    speechTimer = null;
+  }
+}
+
 function stopSpeech() {
+  speechToken += 1;
+  speechPausedBetween = false;
+  speechQueue = [];
+  speechIndex = 0;
+  clearSpeechTimer();
   if (speechSupported()) {
     try {
       window.speechSynthesis.cancel();
@@ -237,6 +326,61 @@ function stopSpeech() {
   updateSpeechUi();
 }
 
+function makeGuideUtterance(chunk) {
+  const utter = new SpeechSynthesisUtterance(chunk);
+  utter.lang = SPEECH_LANG;
+  if (preferredVoice) {
+    utter.voice = preferredVoice;
+  }
+  utter.rate = SPEECH_RATE;
+  utter.pitch = SPEECH_PITCH;
+  utter.volume = SPEECH_VOLUME;
+  return utter;
+}
+
+function speakNextChunk(token) {
+  if (token !== speechToken || speechPausedBetween) return;
+  if (speechIndex >= speechQueue.length) {
+    speechState = "idle";
+    updateSpeechUi();
+    return;
+  }
+
+  const utter = makeGuideUtterance(speechQueue[speechIndex]);
+  utter.onstart = () => {
+    if (token !== speechToken) return;
+    speechState = "speaking";
+    updateSpeechUi();
+  };
+  utter.onend = () => {
+    if (token !== speechToken) return;
+    speechIndex += 1;
+    if (speechIndex >= speechQueue.length) {
+      speechState = "idle";
+      updateSpeechUi();
+      return;
+    }
+    speechTimer = setTimeout(() => {
+      speechTimer = null;
+      if (token !== speechToken || speechPausedBetween) return;
+      speakNextChunk(token);
+    }, SPEECH_GAP_MS);
+  };
+  utter.onerror = () => {
+    if (token !== speechToken) return;
+    speechState = "idle";
+    updateSpeechUi();
+  };
+
+  try {
+    window.speechSynthesis.speak(utter);
+  } catch (_) {
+    speechState = "idle";
+    els.speechHint.textContent = "Could not start narration. Try again.";
+    updateSpeechUi();
+  }
+}
+
 function speakStory() {
   if (!speechSupported()) {
     updateSpeechUi();
@@ -244,31 +388,20 @@ function speakStory() {
   }
   const spoken = cleanSpokenText(lastSpeakText);
   if (!spoken) return;
+
   stopSpeech();
   refreshPreferredVoice();
-  const utter = new SpeechSynthesisUtterance(spoken);
-  utter.lang = SPEECH_LANG;
-  if (preferredVoice) {
-    utter.voice = preferredVoice;
-  }
-  utter.rate = 1;
-  utter.onstart = () => {
-    speechState = "speaking";
-    updateSpeechUi();
-  };
-  utter.onend = () => {
-    speechState = "idle";
-    updateSpeechUi();
-  };
-  utter.onerror = () => {
-    speechState = "idle";
-    updateSpeechUi();
-  };
+  speechQueue = splitSpokenChunks(spoken);
+  speechIndex = 0;
+  speechPausedBetween = false;
+  const token = ++speechToken;
+
   setTimeout(() => {
+    if (token !== speechToken) return;
     try {
-      window.speechSynthesis.speak(utter);
       speechState = "speaking";
       updateSpeechUi();
+      speakNextChunk(token);
     } catch (_) {
       speechState = "idle";
       els.speechHint.textContent = "Could not start narration. Try again.";
@@ -281,20 +414,32 @@ function togglePauseSpeech() {
   if (!speechSupported()) return;
   const synth = window.speechSynthesis;
   if (speechState === "speaking") {
-    try {
-      synth.pause();
+    if (speechTimer) {
+      clearSpeechTimer();
+      speechPausedBetween = true;
       speechState = "paused";
-    } catch (_) {
-      stopSpeech();
-      return;
+    } else {
+      try {
+        synth.pause();
+        speechState = "paused";
+      } catch (_) {
+        stopSpeech();
+        return;
+      }
     }
   } else if (speechState === "paused") {
-    try {
-      synth.resume();
+    speechPausedBetween = false;
+    if (!synth.speaking && !synth.paused) {
       speechState = "speaking";
-    } catch (_) {
-      stopSpeech();
-      return;
+      speakNextChunk(speechToken);
+    } else {
+      try {
+        synth.resume();
+        speechState = "speaking";
+      } catch (_) {
+        stopSpeech();
+        return;
+      }
     }
   }
   updateSpeechUi();
@@ -469,7 +614,7 @@ function showLocation(lat, lng, label) {
   els.focusOptions.innerHTML = "";
   els.focusConfirm.classList.remove("visible");
   els.focusConfirm.textContent = "";
-  els.reverseStatus.textContent = "Looking up address…";
+  els.reverseStatus.textContent = "Looking up address...";
   els.reverseStatus.classList.remove("error");
   clearStory();
   updateGenerateButton();
@@ -757,7 +902,7 @@ function requestLocation(fromButton) {
   }
   if (fromButton) {
     els.locateBtn.disabled = true;
-    setGeoBanner("Finding your location…");
+    setGeoBanner("Finding your location...");
   }
   navigator.geolocation.getCurrentPosition(
     (pos) => {
@@ -778,13 +923,13 @@ function requestLocation(fromButton) {
         "Location unavailable. You can still explore by clicking the map or searching.";
       if (err && err.code === 1) {
         msg =
-          "Location permission denied. Click the map or search a place — the map still works.";
+          "Location permission denied. Click the map or search a place - the map still works.";
       } else if (err && err.code === 2) {
         msg =
           "Your location could not be determined. Click the map or search instead.";
       } else if (err && err.code === 3) {
         msg =
-          "Location request timed out. Try “Use my location” again, or click/search.";
+          'Location request timed out. Try "Use my location" again, or click/search.';
       }
       setGeoBanner(msg, "error");
     },
@@ -810,8 +955,8 @@ async function generateStory(confirmedCandidate) {
   els.generateBtn.disabled = true;
   renderer.showLoading(
     confirmedCandidate
-      ? "Confirmed — researching with source checks…"
-      : "Identifying place and researching with source checks…"
+      ? "Confirmed - researching with source checks..."
+      : "Identifying place and researching with source checks..."
   );
 
   const addr = currentSelection.address || {};
@@ -890,7 +1035,7 @@ async function generateStory(confirmedCandidate) {
   }
 }
 
-// —— Events ——
+// -- Events --
 map.on("click", (e) => {
   showLocation(e.latlng.lat, e.latlng.lng);
   setStatus("");
@@ -901,7 +1046,7 @@ els.form.addEventListener("submit", async (e) => {
   const q = els.input.value.trim();
   if (!q) return;
   els.btn.disabled = true;
-  setStatus("Searching…");
+  setStatus("Searching...");
   try {
     const url =
       "https://nominatim.openstreetmap.org/search?q=" +

@@ -41,7 +41,7 @@ export class StoryRenderer {
     e.storyBlock.classList.add("visible");
     e.storyLoading.classList.add("visible");
     e.storyLoading.textContent =
-      msg || "Identifying place and researching with source checks…";
+      msg || "Identifying place and researching with source checks...";
     e.storyError.classList.remove("visible");
     e.storyError.textContent = "";
     e.storyText.hidden = true;
@@ -96,7 +96,7 @@ export class StoryRenderer {
       e.storyError.classList.add("visible");
     } else if (result.status === STATUS.SOURCE_CONFLICT) {
       e.storyError.textContent =
-        result.message || "Sources conflict — treat claims carefully.";
+        result.message || "Sources conflict - treat claims carefully.";
       e.storyError.classList.add("visible");
     } else if (result.status === STATUS.NO_HISTORY) {
       e.storyError.textContent =
@@ -131,13 +131,13 @@ export class StoryRenderer {
     if (e.claimsMeta) {
       const v = (result.claims && result.claims.verified) || [];
       const u = (result.claims && result.claims.uncertain) || [];
-      const cached = result.meta && result.meta.cached ? " · cached" : "";
+      const cached = result.meta && result.meta.cached ? " | cached" : "";
       e.claimsMeta.hidden = false;
       e.claimsMeta.textContent =
         v.length +
-        " verified · " +
+        " verified | " +
         u.length +
-        " uncertain · status: " +
+        " uncertain | status: " +
         result.status +
         cached;
     }
@@ -216,8 +216,8 @@ export class StoryRenderer {
         const meta = document.createElement("span");
         meta.className = "citation-meta";
         meta.textContent =
-          " — " +
-          [c.publisher, c.tier].filter(Boolean).join(" · ");
+          " - " +
+          [c.publisher, c.tier].filter(Boolean).join(" | ");
         li.appendChild(meta);
       }
       ul.appendChild(li);

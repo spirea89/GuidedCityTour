@@ -21,7 +21,7 @@ export class NarrationGenerator {
     const kidsMode = !!options.kidsMode;
     const categories = options.categories || ["history"];
 
-    // Degraded / no verified: do not call model to invent — use honest template
+    // Degraded / no verified: do not call model to invent - use honest template
     if (
       status === STATUS.WEB_SEARCH_UNAVAILABLE ||
       status === STATUS.OFFLINE
@@ -36,15 +36,15 @@ export class NarrationGenerator {
     if (status === STATUS.NO_HISTORY || !claims.verified.length) {
       const n = emptyNarration();
       n.adult =
-        "Standing here at “" +
+        "Standing here at "" +
         (place.name || "this location") +
-        "”, I do not yet have well-sourced historical claims to share. " +
+        "", I do not yet have well-sourced historical claims to share. " +
         "Map data identifies the place, but authoritative sources did not yield " +
         "verified history for this exact pin. I will not invent one.";
       if (kidsMode) {
         n.kids =
           "We know where we are on the map, but we could not find trusted history " +
-          "for this exact spot yet — so we will not make a story up.";
+          "for this exact spot yet - so we will not make a story up.";
       }
       return n;
     }
@@ -126,7 +126,7 @@ function finalizeNarration(seed, claims, kidsMode) {
     if (!alreadyLabeled) {
       n.adult +=
         "\n\nLegends & local stories (not verified history):\n" +
-        claims.legends.map((c) => "• " + c.text).join("\n");
+        claims.legends.map((c) => "- " + c.text).join("\n");
     }
   }
 
@@ -147,11 +147,11 @@ function finalizeNarration(seed, claims, kidsMode) {
 function buildUnavailableNarration(place) {
   const n = emptyNarration();
   n.adult =
-    "Map identity: “" +
+    "Map identity: "" +
     (place.name || "unnamed location") +
-    "”. Web research was unavailable, so no verified historical narration is offered.";
+    "". Web research was unavailable, so no verified historical narration is offered.";
   n.kids =
-    "We can see this place on the map, but we could not check real history online — so no made-up story.";
+    "We can see this place on the map, but we could not check real history online - so no made-up story.";
   return n;
 }
 
@@ -161,12 +161,12 @@ function buildFallbackFromClaims(claims, place, kidsMode) {
   const lines = (claims.verified || []).map((c) => c.text);
   n.adult =
     name +
-    " — what sources support:\n\n" +
-    lines.map((t) => "• " + t).join("\n");
+    " - what sources support:\n\n" +
+    lines.map((t) => "- " + t).join("\n");
   if (claims.legends && claims.legends.length) {
     n.adult +=
       "\n\nLegends & local stories (not verified history):\n" +
-      claims.legends.map((c) => "• " + c.text).join("\n");
+      claims.legends.map((c) => "- " + c.text).join("\n");
   }
   if (kidsMode) {
     n.kids = buildKidsFromVerified(claims.verified, name);
@@ -180,7 +180,7 @@ function buildKidsFromVerified(verified, name) {
   return (
     head +
     bits.join(" ") +
-    (bits.length ? "" : "We only share facts we can check — nothing made up.")
+    (bits.length ? "" : "We only share facts we can check - nothing made up.")
   ).slice(0, 600);
 }
 

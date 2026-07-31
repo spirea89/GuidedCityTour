@@ -86,7 +86,7 @@ export class FactVerifier {
     }
 
     // Detect simple conflicts: same category contradictory high-confidence uncertain pairs
-    // (lightweight heuristic — full NLI deferred to backend)
+    // (lightweight heuristic - full NLI deferred to backend)
     const conflictHint = detectConflictHint(claims);
     if (conflictHint) {
       status = STATUS.SOURCE_CONFLICT;
