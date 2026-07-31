@@ -26,8 +26,11 @@ export class PromptBuilder {
       "narration.sections, and any spoken guide text), regardless of the place’s " +
       "country or local language. Proper nouns and place names may stay in their " +
       "local form.\n" +
-      "6. Output MUST be a single JSON object matching the schema. No markdown fences.\n" +
-      "7. If web search is unavailable, do not fill verified claims from model memory."
+      "6. Category sections (History, Architecture, Personalities/famous_people, " +
+      "Interesting facts, Today, Kids) must contain ONLY verified facts for that topic — " +
+      "never pad with guesses.\n" +
+      "7. Output MUST be a single JSON object matching the schema. No markdown fences.\n" +
+      "8. If web search is unavailable, do not fill verified claims from model memory."
     );
   }
 
@@ -42,7 +45,9 @@ export class PromptBuilder {
         "If sources conflict on a material fact, set status source_conflict.\n" +
         "Then write narration.adult ONLY from verified (+ labeled legends section).\n" +
         "If kids_mode, also write narration.kids from verified only.\n" +
-        "Fill narration.sections for requested categories when evidence exists.\n" +
+        "Fill narration.sections for requested categories when evidence exists " +
+        "(history, architecture, famous_people/Personalities, interesting_facts, today).\n" +
+        "Omit empty sections rather than inventing content.\n" +
         "All narration fields MUST be in English (even if the place is in a non-English country)." +
         schema
       );
@@ -133,8 +138,8 @@ export class PromptBuilder {
       if (categories.includes("architecture")) {
         queries.push(base + " architecture building style");
       }
-      if (categories.includes("famous_people")) {
-        queries.push(base + " notable people residents");
+      if (categories.includes("famous_people") || categories.includes("personalities")) {
+        queries.push(base + " notable people residents personalities");
       }
       if (categories.includes("today")) {
         queries.push(base + " official tourism");

@@ -258,7 +258,8 @@ function renderSections(sections) {
   const labels = {
     history: "History",
     architecture: "Architecture",
-    famous_people: "Famous people",
+    famous_people: "Personalities",
+    personalities: "Personalities",
     interesting_facts: "Interesting facts",
     today: "Today",
   };

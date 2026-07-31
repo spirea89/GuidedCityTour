@@ -1,6 +1,6 @@
 # TourResponse JSON schema
 
-Validated by `ResponseValidator` before any UI render. Improved from a minimal sketch to support Place/POI generality, claim provenance, error statuses, and kids mode.
+Validated by `ResponseValidator` before any UI render. Supports Place/POI generality, claim provenance, error statuses, kids mode, and architecture aliases (`verifiedFacts` / `uncertainFacts` / `personalities`).
 
 ## Status enum
 
@@ -15,6 +15,17 @@ ok | needs_confirmation | unidentified | no_history | source_conflict
 building | street | neighbourhood | museum | statue | church | castle
 | restaurant | trail | landmark | place | unknown
 ```
+
+## Field aliases (normalized by ResponseValidator)
+
+| Architecture / docs | Canonical JSON |
+|---------------------|----------------|
+| `verifiedFacts` | `claims.verified` |
+| `uncertainFacts` | `claims.uncertain` |
+| `sources` | claim `sources[]` + `citations[]` |
+| `confidence` | claim `confidence` + `place.identification_confidence` |
+| `metadata` | `meta` |
+| `personalities` (section / category) | `famous_people` |
 
 ## Schema (JSON Schema–like)
 
@@ -41,6 +52,14 @@ building | street | neighbourhood | museum | statue | church | castle
     "message": {
       "type": "string",
       "description": "Human-readable status detail for UI"
+    },
+    "verifiedFacts": {
+      "type": "array",
+      "description": "Alias for claims.verified — accepted then normalized"
+    },
+    "uncertainFacts": {
+      "type": "array",
+      "description": "Alias for claims.uncertain — accepted then normalized"
     },
     "place": {
       "type": "object",
@@ -104,6 +123,7 @@ building | street | neighbourhood | museum | statue | church | castle
     },
     "narration": {
       "type": "object",
+      "description": "All string fields MUST be English",
       "properties": {
         "adult": { "type": "string" },
         "kids": { "type": "string" },
@@ -112,7 +132,14 @@ building | street | neighbourhood | museum | statue | church | castle
           "properties": {
             "history": { "type": "string" },
             "architecture": { "type": "string" },
-            "famous_people": { "type": "string" },
+            "famous_people": {
+              "type": "string",
+              "description": "Personalities — verified people associated with the place"
+            },
+            "personalities": {
+              "type": "string",
+              "description": "Alias normalized to famous_people"
+            },
             "interesting_facts": { "type": "string" },
             "today": { "type": "string" }
           }
@@ -182,8 +209,9 @@ building | street | neighbourhood | museum | statue | church | castle
 
 ## Validation rules (application-level)
 
-1. If `status === "ok"`, `claims.verified.length >= 1` OR `narration.adult` explains `no_history` honestly (prefer `status: no_history`).
+1. If `status === "ok"`, `claims.verified.length >= 1` OR prefer `status: no_history`.
 2. Every `claims.verified[]` item must have `sources.length >= 1` with a non-empty `title` (url strongly preferred).
 3. `narration.kids` must not introduce facts absent from `claims.verified`.
 4. `identification_confidence < 0.55` ⇒ status should be `needs_confirmation` or `ambiguous_name`, not `ok`.
 5. Reject payloads that put training-memory “facts” into `verified` when `research.mode === "degraded"`.
+6. Narration language expectation: English (enforced in prompts; UI may flag non-EN later).

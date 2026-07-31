@@ -5,9 +5,9 @@
 GitHub Pages is static. Two production needs usually break in pure browser mode:
 
 1. **CORS / product policy** — OpenAI **Responses API** with the **`web_search`** tool is not reliably callable cross-origin from arbitrary static origins. Chat Completions with a user key often works; web-grounded research often does not.
-2. **Shared cache & cost** — Per-browser IndexedDB does not help the next visitor. A Worker + KV cache collapses repeat research for famous POIs.
+2. **Shared cache & cost** — Per-browser IndexedDB does not help the next visitor. A Worker + **Supabase** (or KV) collapses repeat research for famous POIs.
 
-Design the client against interfaces below so swapping `baseUrl` to a Worker is a config change.
+Design the client against interfaces below so swapping `baseUrl` / `tourEndpoint` to a Worker is a config change. See [supabase-cache.md](./supabase-cache.md).
 
 ---
 
@@ -28,7 +28,7 @@ Request:
     "address": {},
     "nearby_allow_list": []
   },
-  "categories": ["history", "architecture"],
+  "categories": ["history", "architecture", "famous_people", "today"],
   "kids_mode": false,
   "client_cache_buster": null
 }
@@ -50,7 +50,7 @@ Runs Responses + `web_search` only; returns research packet for debugging.
 1. Hold `OPENAI_API_KEY` in secrets.
 2. Call Responses API with `web_search` tool.
 3. Validate output with the same schema rules.
-4. Cache by normalized place key in KV (TTL 7–30 days).
+4. Cache by normalized place key in **Supabase** `place_research` (TTL 14–30 days); optional KV hot layer.
 5. Rate-limit by IP / auth token.
 6. Strip/avoid logging full prompts with PII beyond coords + place name.
 
@@ -64,6 +64,11 @@ export const API = {
   // null = call OpenAI from browser with user key (Pages demo mode)
   tourEndpoint: null, // e.g. "https://gct-api.example.workers.dev/v1/tour"
   openAiBase: "https://api.openai.com/v1",
+};
+
+export const SUPABASE = {
+  url: "",      // never commit real values
+  anonKey: "",  // prefer Worker service role for writes
 };
 ```
 
@@ -94,11 +99,12 @@ Access-Control-Allow-Headers: Authorization, Content-Type
 
 | Lever | Suggestion |
 |-------|------------|
-| Cache | 7d client / 30d KV for high-confidence famous places |
+| Cache | 7d IndexedDB / 14–30d Supabase for high-confidence places |
 | Model | `gpt-4o` quality narration; `gpt-4o-mini` for kids rewrite or economy |
-| Max tokens | Cap narration ~1200; research extraction ~2000 |
+| Max tokens | Cap narration ~1200–1600; research extraction ~2000–3500 |
 | Concurrency | 1 in-flight tour per browser tab; Worker 10–60 req/min/IP |
 | Categories | Fewer categories → cheaper / shorter research |
+| Shared hits | Primary cost control — research once per building |
 
 ---
 
@@ -109,6 +115,7 @@ Access-Control-Allow-Headers: Authorization, Content-Type
 3. Do not execute URLs from citations; display only.
 4. Kids mode: verified-only; avoid graphic violence in prompts.
 5. Refuse narration when `web_search_unavailable` rather than silently using parametric memory as “verified”.
+6. English narrations only (prompt-enforced).
 
 ---
 
@@ -118,8 +125,16 @@ Access-Control-Allow-Headers: Authorization, Content-Type
 Identify (OSM) → try Responses+web_search → on failure:
   status = web_search_unavailable
   claims.verified = []
-  narration explains research unavailable
+  narration explains research unavailable (English)
   UI shows Worker recommendation from docs
 ```
 
 No fabricated historical storytelling in this path.
+
+---
+
+## Honest GitHub Pages limits
+
+- No shared cross-user cache until Worker + Supabase.
+- Browser Responses + `web_search` may fail CORS — degraded path is intentional, not a bug.
+- User-supplied keys in `localStorage` are demo-only; commercial product should use server-held keys.

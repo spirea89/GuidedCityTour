@@ -12,8 +12,16 @@ export class FactVerifier {
     const mode = (packet && packet.research && packet.research.mode) || "none";
     const degraded = mode === "degraded" || mode === "none";
 
-    const verifiedIn = Array.isArray(raw.verified) ? raw.verified : [];
-    const uncertainIn = Array.isArray(raw.uncertain) ? raw.uncertain : [];
+    const verifiedIn = Array.isArray(raw.verified)
+      ? raw.verified
+      : Array.isArray(packet && packet.verifiedFacts)
+        ? packet.verifiedFacts
+        : [];
+    const uncertainIn = Array.isArray(raw.uncertain)
+      ? raw.uncertain
+      : Array.isArray(packet && packet.uncertainFacts)
+        ? packet.uncertainFacts
+        : [];
     const legendsIn = Array.isArray(raw.legends) ? raw.legends : [];
     const unknownIn = Array.isArray(raw.unknown) ? raw.unknown : [];
 
@@ -120,7 +128,11 @@ function normalizeClaim(c) {
   return {
     text,
     confidence: clamp01(Number(c.confidence) || 0),
-    category: c.category || "other",
+    category: (() => {
+      let cat = c.category || "other";
+      if (cat === "personalities" || cat === "people") cat = "famous_people";
+      return cat;
+    })(),
     sources,
   };
 }

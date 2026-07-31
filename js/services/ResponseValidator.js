@@ -33,7 +33,7 @@ export class ResponseValidator {
       }
     }
 
-    const claims = payload.claims || {};
+    const claims = coalesceClaims(payload);
     for (const bucket of ["verified", "uncertain", "legends"]) {
       if (claims[bucket] != null && !Array.isArray(claims[bucket])) {
         errors.push("claims." + bucket + " must be an array");
@@ -75,7 +75,8 @@ export class ResponseValidator {
   }
 
   normalize(payload) {
-    const claimsIn = payload.claims || {};
+    // Accept verifiedFacts / uncertainFacts aliases (architecture contract)
+    const claimsIn = coalesceClaims(payload);
     const claims = emptyClaims();
     claims.verified = normalizeClaimList(claimsIn.verified);
     claims.uncertain = normalizeClaimList(claimsIn.uncertain);
@@ -91,6 +92,10 @@ export class ResponseValidator {
     const sec = narrationIn.sections || {};
     for (const k of Object.keys(narration.sections)) {
       narration.sections[k] = String(sec[k] || "").trim();
+    }
+    // personalities → famous_people section alias
+    if (!narration.sections.famous_people && sec.personalities) {
+      narration.sections.famous_people = String(sec.personalities || "").trim();
     }
 
     const citations = Array.isArray(payload.citations)
@@ -215,18 +220,34 @@ function normalizeClaimList(list) {
       if (!c || typeof c !== "object") return null;
       const text = String(c.text || "").trim();
       if (!text) return null;
-      const category = CLAIM_CATEGORIES.has(c.category) ? c.category : "other";
+      let category = c.category || "other";
+      if (category === "personalities" || category === "people") {
+        category = "famous_people";
+      }
+      const categoryNorm = CLAIM_CATEGORIES.has(category) ? category : "other";
       const sources = Array.isArray(c.sources)
         ? c.sources.map(normalizeSource).filter(Boolean)
         : [];
       return {
         text,
         confidence: clamp01(Number(c.confidence) || 0),
-        category,
+        category: categoryNorm,
         sources,
       };
     })
     .filter(Boolean);
+}
+
+/** Map architecture aliases verifiedFacts / uncertainFacts onto claims.* */
+function coalesceClaims(payload) {
+  const base =
+    payload.claims && typeof payload.claims === "object" ? payload.claims : {};
+  return {
+    verified: base.verified || payload.verifiedFacts || [],
+    uncertain: base.uncertain || payload.uncertainFacts || [],
+    legends: base.legends || payload.legends || [],
+    unknown: base.unknown || payload.unknown || [],
+  };
 }
 
 function clamp01(n) {

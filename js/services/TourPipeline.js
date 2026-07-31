@@ -1,9 +1,11 @@
 import { API, PIPELINE_VERSION, WEB_SEARCH_UNAVAILABLE_HINT } from "../config.js";
-import { CacheService } from "./CacheService.js";
+import { createTourCache } from "./CacheService.js";
 import { OpenAIService } from "./OpenAIService.js";
 import { PromptBuilder } from "./PromptBuilder.js";
 import { ResponseValidator } from "./ResponseValidator.js";
-import { PlaceIdentifier } from "./PlaceIdentifier.js";
+import {
+  BuildingIdentifier,
+} from "./PlaceIdentifier.js";
 import { ResearchService } from "./ResearchService.js";
 import { FactVerifier } from "./FactVerifier.js";
 import { NarrationGenerator } from "./NarrationGenerator.js";
@@ -13,6 +15,8 @@ import { placeToJson } from "../models/place.js";
 
 /**
  * Orchestrates Identification → Research → Fact extraction → Narration → Validate → Cache.
+ * Services align with architecture: BuildingIdentifier (= PlaceIdentifier), ResearchService,
+ * FactVerifier, NarrationGenerator, PromptBuilder, CacheService, OpenAIService, ResponseValidator.
  */
 export class TourPipeline {
   constructor(options = {}) {
@@ -20,10 +24,13 @@ export class TourPipeline {
       apiKey: options.apiKey,
       model: options.model,
     });
-    this.cache = options.cache || new CacheService();
+    this.cache = options.cache || createTourCache();
     this.prompts = options.promptBuilder || new PromptBuilder();
     this.validator = options.validator || new ResponseValidator();
-    this.identifier = options.identifier || new PlaceIdentifier();
+    this.identifier =
+      options.identifier ||
+      options.buildingIdentifier ||
+      new BuildingIdentifier();
     this.research = options.research || new ResearchService({
       openAi: this.openAi,
       promptBuilder: this.prompts,
@@ -98,6 +105,8 @@ export class TourPipeline {
       categories: categories.join(","),
       kids: kidsMode,
       v: PIPELINE_VERSION,
+      placeId: (options.confirmedCandidate && options.confirmedCandidate.id) || "",
+      name: focus.label || selection.displayName || "",
     });
 
     if (!options.skipCache && !options.confirmedCandidate) {
@@ -245,6 +254,10 @@ export class TourPipeline {
 }
 
 function normalizeCategories(cats) {
+  const alias = {
+    personalities: "famous_people",
+    people: "famous_people",
+  };
   const allowed = new Set([
     "history",
     "architecture",
@@ -253,6 +266,9 @@ function normalizeCategories(cats) {
     "today",
   ]);
   const list = Array.isArray(cats) ? cats : ["history"];
-  const out = list.map(String).filter((c) => allowed.has(c));
+  const out = list
+    .map(String)
+    .map((c) => alias[c] || c)
+    .filter((c) => allowed.has(c));
   return out.length ? out : ["history"];
 }

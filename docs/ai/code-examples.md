@@ -1,6 +1,6 @@
 # Code examples (every component)
 
-Runnable sources: `js/`. Snippets below mirror public APIs.
+Runnable sources: `js/`. Snippets below mirror public APIs (v2.1.0).
 
 ## Place model
 
@@ -18,23 +18,32 @@ const place = createPlace({
 });
 ```
 
-## CacheService
+## TourCache / IndexedDBCache / SupabaseCache
 
 ```js
-import { CacheService } from "../services/CacheService.js";
+import {
+  createTourCache,
+  IndexedDBCache,
+  SupabaseCache,
+  CacheService, // alias of IndexedDBCache
+} from "../services/CacheService.js";
 
-const cache = new CacheService();
+const cache = createTourCache(); // IndexedDB; Composite if SUPABASE configured
 const key = cache.makeKey({
   lat: 48.2084,
   lng: 16.3731,
   focus: "house",
   categories: "history,architecture",
   kids: false,
-  v: "2.0.0",
+  v: "2.1.0",
+  name: "Stephansdom",
 });
 await cache.set(key, tourResult, 7 * 24 * 60 * 60 * 1000);
 const hit = await cache.get(key);
-await cache.invalidate("gct:v2:");
+
+// Stub — no-ops until url + anonKey set at runtime (prefer Worker writes)
+const shared = new SupabaseCache({ url: "", anonKey: "" });
+console.log(shared.configured); // false
 ```
 
 ## OpenAIService
@@ -44,16 +53,14 @@ import { OpenAIService } from "../services/OpenAIService.js";
 
 const openai = new OpenAIService({ apiKey, model: "gpt-4o" });
 
-// Preferred: Responses + web_search
 const r = await openai.createResponse({
   instructions: systemAndDeveloper,
   input: userPayload,
   tools: [{ type: "web_search" }],
 });
 
-// Degraded: Chat Completions JSON
 const c = await openai.createChatCompletion({
-  messages: […],
+  messages: [/* … */],
   responseFormat: { type: "json_object" },
 });
 ```
@@ -67,18 +74,21 @@ const pb = new PromptBuilder();
 const system = pb.systemPrompt();
 const developer = pb.developerPrompt("research"); // or degraded_no_search | narrate
 const user = pb.userTourPrompt(place, {
-  categories: ["history", "architecture"],
+  categories: ["history", "architecture", "famous_people"],
   kidsMode: false,
   researchMode: "web_search",
 });
 ```
 
-## PlaceIdentifier
+## BuildingIdentifier (PlaceIdentifier)
 
 ```js
-import { PlaceIdentifier } from "../services/PlaceIdentifier.js";
+import {
+  PlaceIdentifier,
+  BuildingIdentifier,
+} from "../services/PlaceIdentifier.js";
 
-const id = new PlaceIdentifier();
+const id = new BuildingIdentifier(); // same as PlaceIdentifier
 const result = id.identify({
   lat, lng, address, displayName, focus, nearbyPlaces,
 });
@@ -116,9 +126,10 @@ import { NarrationGenerator } from "../services/NarrationGenerator.js";
 
 const ng = new NarrationGenerator({ openAi: openai });
 const narration = await ng.narrate(bundle, place, {
-  categories: ["history", "today"],
+  categories: ["history", "today", "famous_people"],
   kidsMode: true,
 });
+// narration.sections.history | architecture | famous_people | today | …
 ```
 
 ## ResponseValidator
@@ -128,6 +139,7 @@ import { ResponseValidator } from "../services/ResponseValidator.js";
 
 const v = new ResponseValidator();
 const parsed = v.parseJsonText(modelText);
+// Also accepts verifiedFacts / uncertainFacts / personalities aliases
 const { ok, errors, normalized } = v.validate(parsed.value);
 ```
 
@@ -138,7 +150,7 @@ import { TourPipeline } from "../services/TourPipeline.js";
 
 const pipeline = new TourPipeline({ apiKey, model: "gpt-4o" });
 const result = await pipeline.run(selection, {
-  categories: ["history", "architecture", "interesting_facts"],
+  categories: ["history", "architecture", "famous_people", "today"],
   kidsMode: false,
   confirmedCandidate: null,
 });

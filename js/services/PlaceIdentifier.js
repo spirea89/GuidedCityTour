@@ -9,6 +9,9 @@ import { STATUS } from "../schemas/tourResponseSchema.js";
 /**
  * Identifies a Place/POI from OSM reverse-geocode + focus selection.
  * Does not invent history — identity only.
+ *
+ * Architecture alias: BuildingIdentifier (docs / SOLID naming).
+ * Handles buildings and any Place/POI entity type.
  */
 export class PlaceIdentifier {
   /**
@@ -184,3 +187,6 @@ export class PlaceIdentifier {
     };
   }
 }
+
+/** Architecture / SOLID alias — same class as PlaceIdentifier. */
+export { PlaceIdentifier as BuildingIdentifier };
