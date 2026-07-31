@@ -636,23 +636,28 @@ function showLocation(lat, lng, label, options) {
 
   els.lat.textContent = formatCoord(latNum);
   els.lng.textContent = formatCoord(lngNum);
-  els.embed.src =
-    "https://maps.google.com/maps?q=" +
-    latNum +
-    "," +
-    lngNum +
-    "&z=16&output=embed";
-  els.streetView.href =
-    "https://www.google.com/maps/@" +
-    latNum +
-    "," +
-    lngNum +
-    ",3a,90y,0h,90t/data=!3m6!1e1";
-  els.gmaps.href =
-    "https://www.google.com/maps/search/?api=1&query=" +
-    latNum +
-    "," +
-    lngNum;
+  // Desktop only: Google Maps embed + external map links (hidden in mobile-fit)
+  if (!mobileFit) {
+    els.embed.src =
+      "https://maps.google.com/maps?q=" +
+      latNum +
+      "," +
+      lngNum +
+      "&z=16&output=embed";
+    els.streetView.href =
+      "https://www.google.com/maps/@" +
+      latNum +
+      "," +
+      lngNum +
+      ",3a,90y,0h,90t/data=!3m6!1e1";
+    els.gmaps.href =
+      "https://www.google.com/maps/search/?api=1&query=" +
+      latNum +
+      "," +
+      lngNum;
+  } else if (els.embed) {
+    els.embed.removeAttribute("src");
+  }
 
   if (label) {
     els.placeName.textContent = label;
@@ -692,6 +697,7 @@ function showLocation(lat, lng, label, options) {
 
   if (mobileFit) {
     refreshNearbyChips(latNum, lngNum);
+    scrollStoryGeneratorIntoView();
   }
 }
 
@@ -853,6 +859,18 @@ function renderFocusOptions(options) {
     });
   });
   if (options.length) selectFocus(options[0]);
+  if (mobileFit) scrollStoryGeneratorIntoView();
+}
+
+function scrollStoryGeneratorIntoView() {
+  if (!mobileFit) return;
+  const target =
+    document.getElementById("story-generator") || els.focusOptions;
+  if (!target) return;
+  // Defer so panel layout settles after content becomes active
+  requestAnimationFrame(function () {
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 }
 
 function selectFocus(opt) {
@@ -1444,6 +1462,7 @@ function setMobileFit(on, persist) {
 
   if (mobileFit) {
     ensureMobileMap();
+    if (els.embed) els.embed.removeAttribute("src");
     if (els.nearbyChips) {
       els.nearbyChips.hidden = false;
       els.nearbyChips.classList.add("visible");
@@ -1469,6 +1488,27 @@ function setMobileFit(on, persist) {
     }, 50);
   } else {
     teardownMobileMapUi();
+    if (currentSelection && els.embed) {
+      const latNum = currentSelection.lat;
+      const lngNum = currentSelection.lng;
+      els.embed.src =
+        "https://maps.google.com/maps?q=" +
+        latNum +
+        "," +
+        lngNum +
+        "&z=16&output=embed";
+      els.streetView.href =
+        "https://www.google.com/maps/@" +
+        latNum +
+        "," +
+        lngNum +
+        ",3a,90y,0h,90t/data=!3m6!1e1";
+      els.gmaps.href =
+        "https://www.google.com/maps/search/?api=1&query=" +
+        latNum +
+        "," +
+        lngNum;
+    }
     setTimeout(() => map.invalidateSize(), 50);
   }
 }

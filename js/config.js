@@ -1,7 +1,7 @@
 /** GuidedCityTour shared config - no secrets. */
-export const APP_VERSION = "v2.2.0";
+export const APP_VERSION = "v2.2.1";
 export const APP_VERSION_DATE = "2026-07-31";
-export const PIPELINE_VERSION = "2.2.0";
+export const PIPELINE_VERSION = "2.2.1";
 
 export const DEFAULT_MAP = { lat: 48.8566, lng: 2.3522, zoom: 13 };
 

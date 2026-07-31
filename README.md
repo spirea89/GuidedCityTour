@@ -4,7 +4,7 @@ A static map app for exploring locations and generating **grounded** guided-tour
 
 **Live site:** [https://spirea89.github.io/GuidedCityTour/](https://spirea89.github.io/GuidedCityTour/)
 
-**On-page version:** look for **`v2.2.0`** in the header badge and side-panel footer. After a deploy, hard-refresh if the version does not match - GitHub Pages can serve a cached older build briefly.
+**On-page version:** look for **`v2.2.1`** in the header badge and side-panel footer. After a deploy, hard-refresh if the version does not match - GitHub Pages can serve a cached older build briefly.
 
 ## Architecture (v2.1+)
 
@@ -75,7 +75,7 @@ Stories need an [OpenAI API key](https://platform.openai.com/api-keys).
 
 1. Push to GitHub `main`.
 2. **Settings → Pages** → Deploy from branch `main` / `(root)`.
-3. Confirm live badge shows `v2.2.0` (hard-refresh if needed).
+3. Confirm live badge shows `v2.2.1` (hard-refresh if needed).
 
 ES modules require `http://` or `https://` (not always `file://`). Serve locally with any static server if needed.
 

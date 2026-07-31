@@ -993,21 +993,26 @@
     }
 
     body.mobile-fit .map-stack {
-      flex: 1 1 48%;
-      min-height: 40vh;
+      flex: 1 1 58%;
+      min-height: 48vh;
     }
 
     body.mobile-fit .panel {
       flex: 0 0 auto;
       width: 100%;
-      max-height: 52vh;
+      max-height: 42vh;
       border-left: none;
       border-top: 1px solid var(--border);
     }
 
+    /* Mobile: MapLibre + story only -- no Google embed / Street View / Maps links */
+    body.mobile-fit .desktop-maps-only {
+      display: none !important;
+    }
+
     body.mobile-fit .panel-inner {
-      padding: 1rem 0.95rem;
-      gap: 1.1rem;
+      padding: 0.85rem 0.95rem;
+      gap: 0.95rem;
     }
 
     body.mobile-fit .focus-option {
@@ -1034,10 +1039,6 @@
       padding: 0.7rem 0.85rem;
     }
 
-    body.mobile-fit .embed-wrap {
-      aspect-ratio: 16 / 9;
-    }
-
     body.mobile-fit .maplibregl-ctrl-group button {
       width: 36px !important;
       height: 36px !important;
@@ -1047,7 +1048,7 @@
 <body>
   <header class="header">
     <div class="brand">Guided <span>City Tour</span></div>
-    <span class="app-version" id="app-version" title="App version - compare with the latest GitHub Pages deploy">v2.2.0</span>
+    <span class="app-version" id="app-version" title="App version - compare with the latest GitHub Pages deploy">v2.2.1</span>
     <form class="search-form" id="search-form" role="search">
       <input
         type="search"
@@ -1096,9 +1097,9 @@
         </div>
 
         <div class="panel-content" id="panel-content">
-          <div class="section">
+          <div class="section desktop-maps-only" id="location-preview">
             <h2>Location preview</h2>
-            <div class="embed-wrap">
+            <div class="embed-wrap" id="panel-map-embed">
               <iframe
                 id="gmaps-embed"
                 title="Google Maps preview"
@@ -1122,7 +1123,7 @@
             </dl>
           </div>
 
-          <div class="section">
+          <div class="section" id="story-generator">
             <h2>Story focus</h2>
             <p class="search-status">Identity from OpenStreetMap; nearby landmarks only from the OSM allow-list. History needs web sources -- we do not invent facts.</p>
             <p id="reverse-status" class="search-status" aria-live="polite"></p>
@@ -1161,14 +1162,14 @@
           <div class="actions">
             <button type="button" class="btn" id="generate-btn" disabled>Generate grounded tour</button>
             <a
-              class="btn btn-secondary"
+              class="btn btn-secondary desktop-maps-only"
               id="streetview-btn"
               href="#"
               target="_blank"
               rel="noopener noreferrer"
             >Open Street View</a>
             <a
-              class="btn btn-secondary"
+              class="btn btn-secondary desktop-maps-only"
               id="gmaps-btn"
               href="#"
               target="_blank"
@@ -1176,7 +1177,7 @@
             >Open in Google Maps</a>
           </div>
 
-          <p class="panel-version" id="panel-version">GuidedCityTour v2.2.0 | 2026-07-31</p>
+          <p class="panel-version" id="panel-version">GuidedCityTour v2.2.1 | 2026-07-31</p>
         </div>
       </div>
     </aside>
