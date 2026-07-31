@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Map Explorer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    :root {
+      --bg-deep: #0b1220;
+      --bg-panel: #121a2b;
+      --bg-header: #0e1626;
+      --border: #243049;
+      --text: #e8eef8;
+      --text-muted: #8fa0b8;
+      --accent: #3db8a8;
+      --accent-hover: #4fd0bf;
+      --danger-soft: #2a3548;
+      --map-bg: #1a2332;
+      --radius: 8px;
+      --font: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font);
+      color: var(--text);
+      background: var(--bg-deep);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    /* —— Header —— */
+    .header {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 0.75rem 1.25rem;
+      background: var(--bg-header);
+      border-bottom: 1px solid var(--border);
+      z-index: 1000;
+    }
+
+    .brand {
+      font-size: 1.15rem;
+      font-weight: 650;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      color: var(--text);
+    }
+
+    .brand span {
+      color: var(--accent);
+    }
+
+    .search-form {
+      display: flex;
+      flex: 1;
+      max-width: 420px;
+      gap: 0.5rem;
+    }
+
+    .search-form input {
+      flex: 1;
+      min-width: 0;
+      padding: 0.55rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-panel);
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .search-form input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .search-form input:focus {
+      border-color: var(--accent);
+    }
+
+    .search-form button,
+    .btn {
+      padding: 0.55rem 1rem;
+      border: none;
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: #061018;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    .search-form button:hover,
+    .btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .search-form button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .btn-secondary {
+      background: var(--danger-soft);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #354560;
+    }
+
+    .search-status {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      min-width: 0;
+    }
+
+    .search-status.error {
+      color: #f07178;
+    }
+
+    /* —— Main layout —— */
+    .main {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+
+    #map {
+      flex: 1;
+      min-height: 0;
+      background: var(--map-bg);
+      z-index: 1;
+    }
+
+    /* —— Side panel —— */
+    .panel {
+      flex: 0 0 340px;
+      width: 340px;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .panel-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1.15rem;
+      overflow-y: auto;
+      height: 100%;
+    }
+
+    .panel h2 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .panel-placeholder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 0.6rem;
+      color: var(--text-muted);
+      padding: 2rem 1rem;
+    }
+
+    .panel-placeholder .hint-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      color: var(--accent);
+      margin-bottom: 0.35rem;
+    }
+
+    .panel-placeholder p {
+      font-size: 0.95rem;
+      line-height: 1.45;
+      max-width: 220px;
+    }
+
+    .panel-content {
+      display: none;
+      flex-direction: column;
+      gap: 1rem;
+      flex: 1;
+    }
+
+    .panel-content.active {
+      display: flex;
+    }
+
+    .panel-placeholder.hidden {
+      display: none;
+    }
+
+    .embed-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--bg-deep);
+    }
+
+    .embed-wrap iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .coords {
+      font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+      font-size: 0.85rem;
+      color: var(--text);
+      background: var(--bg-deep);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.65rem 0.85rem;
+      line-height: 1.5;
+    }
+
+    .coords dt {
+      display: inline;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .coords dd {
+      display: inline;
+      margin: 0 0.75rem 0 0.35rem;
+    }
+
+    .place-name {
+      font-size: 0.95rem;
+      line-height: 1.4;
+      color: var(--text);
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: auto;
+    }
+
+    .actions .btn {
+      width: 100%;
+      padding: 0.7rem 1rem;
+    }
+
+    /* Leaflet tweaks for dark chrome */
+    .leaflet-control-attribution {
+      background: rgba(11, 18, 32, 0.85) !important;
+      color: var(--text-muted) !important;
+      font-size: 10px !important;
+    }
+
+    .leaflet-control-attribution a {
+      color: var(--accent) !important;
+    }
+
+    .leaflet-control-zoom a {
+      background: var(--bg-panel) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+
+    .leaflet-control-zoom a:hover {
+      background: var(--danger-soft) !important;
+    }
+
+    /* —— Responsive —— */
+    @media (max-width: 768px) {
+      .header {
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        padding: 0.65rem 0.85rem;
+      }
+
+      .brand {
+        font-size: 1.05rem;
+      }
+
+      .search-form {
+        flex: 1 1 100%;
+        max-width: none;
+        order: 3;
+      }
+
+      .search-status {
+        flex: 1 1 100%;
+        order: 4;
+      }
+
+      .main {
+        flex-direction: column;
+      }
+
+      #map {
+        flex: 1 1 55%;
+        min-height: 45vh;
+      }
+
+      .panel {
+        flex: 0 0 auto;
+        width: 100%;
+        max-height: 45vh;
+        border-left: none;
+        border-top: 1px solid var(--border);
+      }
+
+      .embed-wrap {
+        aspect-ratio: 16 / 9;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="brand">Map <span>Explorer</span></div>
+    <form class="search-form" id="search-form" role="search">
+      <input
+        type="search"
+        id="search-input"
+        name="q"
+        placeholder="Search a place…"
+        autocomplete="off"
+        aria-label="Search for a place"
+      />
+      <button type="submit" id="search-btn">Search</button>
+    </form>
+    <div class="search-status" id="search-status" aria-live="polite"></div>
+  </header>
+
+  <div class="main">
+    <div id="map" role="application" aria-label="Interactive map"></div>
+
+    <aside class="panel" aria-label="Location details">
+      <div class="panel-inner">
+        <div class="panel-placeholder" id="panel-placeholder">
+          <div class="hint-icon" aria-hidden="true">⌖</div>
+          <p>Click the map or search for a place to explore Street View and Google Maps.</p>
+        </div>
+
+        <div class="panel-content" id="panel-content">
+          <h2>Location preview</h2>
+          <div class="embed-wrap">
+            <iframe
+              id="gmaps-embed"
+              title="Google Maps preview"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              allowfullscreen
+            ></iframe>
+          </div>
+
+          <p class="place-name" id="place-name" hidden></p>
+
+          <dl class="coords">
+            <div>
+              <dt>Lat</dt>
+              <dd id="coord-lat">—</dd>
+            </div>
+            <div>
+              <dt>Lng</dt>
+              <dd id="coord-lng">—</dd>
+            </div>
+          </dl>
+
+          <div class="actions">
+            <a
+              class="btn"
+              id="streetview-btn"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+            >Open Street View</a>
+            <a
+              class="btn btn-secondary"
+              id="gmaps-btn"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+            >Open in Google Maps</a>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    (function () {
+      const DEFAULT = { lat: 48.8566, lng: 2.3522, zoom: 13 };
+
+      const map = L.map("map", { zoomControl: true }).setView(
+        [DEFAULT.lat, DEFAULT.lng],
+        DEFAULT.zoom
+      );
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(map);
+
+      let marker = null;
+
+      const els = {
+        placeholder: document.getElementById("panel-placeholder"),
+        content: document.getElementById("panel-content"),
+        embed: document.getElementById("gmaps-embed"),
+        placeName: document.getElementById("place-name"),
+        lat: document.getElementById("coord-lat"),
+        lng: document.getElementById("coord-lng"),
+        streetView: document.getElementById("streetview-btn"),
+        gmaps: document.getElementById("gmaps-btn"),
+        form: document.getElementById("search-form"),
+        input: document.getElementById("search-input"),
+        btn: document.getElementById("search-btn"),
+        status: document.getElementById("search-status"),
+      };
+
+      function formatCoord(n) {
+        return Number(n).toFixed(6);
+      }
+
+      function showLocation(lat, lng, label) {
+        const latNum = Number(lat);
+        const lngNum = Number(lng);
+
+        if (marker) {
+          marker.setLatLng([latNum, lngNum]);
+        } else {
+          marker = L.marker([latNum, lngNum]).addTo(map);
+        }
+
+        els.lat.textContent = formatCoord(latNum);
+        els.lng.textContent = formatCoord(lngNum);
+
+        els.embed.src =
+          "https://maps.google.com/maps?q=" +
+          latNum +
+          "," +
+          lngNum +
+          "&z=16&output=embed";
+
+        els.streetView.href =
+          "https://www.google.com/maps/@" +
+          latNum +
+          "," +
+          lngNum +
+          ",3a,90y,0h,90t/data=!3m6!1e1";
+
+        els.gmaps.href =
+          "https://www.google.com/maps/search/?api=1&query=" +
+          latNum +
+          "," +
+          lngNum;
+
+        if (label) {
+          els.placeName.textContent = label;
+          els.placeName.hidden = false;
+        } else {
+          els.placeName.textContent = "";
+          els.placeName.hidden = true;
+        }
+
+        els.placeholder.classList.add("hidden");
+        els.content.classList.add("active");
+      }
+
+      map.on("click", function (e) {
+        showLocation(e.latlng.lat, e.latlng.lng);
+        setStatus("");
+      });
+
+      function setStatus(msg, isError) {
+        els.status.textContent = msg || "";
+        els.status.classList.toggle("error", !!isError);
+      }
+
+      els.form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const q = els.input.value.trim();
+        if (!q) return;
+
+        els.btn.disabled = true;
+        setStatus("Searching…");
+
+        try {
+          const url =
+            "https://nominatim.openstreetmap.org/search?q=" +
+            encodeURIComponent(q) +
+            "&format=json&limit=1";
+
+          const res = await fetch(url, {
+            headers: {
+              Accept: "application/json",
+              "Accept-Language": navigator.language || "en",
+            },
+          });
+
+          if (!res.ok) throw new Error("Geocoder request failed");
+
+          const data = await res.json();
+          if (!data || !data.length) {
+            setStatus("No results found.", true);
+            return;
+          }
+
+          const hit = data[0];
+          const lat = parseFloat(hit.lat);
+          const lng = parseFloat(hit.lon);
+
+          map.flyTo([lat, lng], 15, { duration: 1.2 });
+          showLocation(lat, lng, hit.display_name);
+          setStatus("");
+        } catch (err) {
+          console.error(err);
+          setStatus("Search failed. Try again.", true);
+        } finally {
+          els.btn.disabled = false;
+        }
+      });
+
+      // Fix Leaflet size after layout settles
+      setTimeout(function () {
+        map.invalidateSize();
+      }, 0);
+
+      window.addEventListener("resize", function () {
+        map.invalidateSize();
+      });
+    })();
+  </script>
+</body>
+</html>
