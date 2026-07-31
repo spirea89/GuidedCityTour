@@ -650,7 +650,7 @@
 
         <div class="panel-placeholder" id="panel-placeholder">
           <div class="hint-icon" aria-hidden="true">⌖</div>
-          <p>Click the map or search for a place, then choose a street or house to generate a guided-tour story.</p>
+          <p>Click the map or search for a place, then choose a street or house. Stories focus on building history, notable residents, and local events.</p>
         </div>
 
         <div class="panel-content" id="panel-content">
@@ -682,6 +682,7 @@
 
           <div class="section">
             <h2>Story focus</h2>
+            <p class="search-status">Stories prioritize documented history of the building, street, or neighbourhood.</p>
             <p id="reverse-status" class="search-status" aria-live="polite"></p>
             <div class="focus-options" id="focus-options" role="radiogroup" aria-label="Choose story focus"></div>
             <p class="focus-confirm" id="focus-confirm"></p>
@@ -689,13 +690,13 @@
 
           <div class="section story-block" id="story-block">
             <h2>Guided-tour story</h2>
-            <p class="story-loading" id="story-loading">Writing your story…</p>
+            <p class="story-loading" id="story-loading">Researching history for this place…</p>
             <p class="story-error" id="story-error" role="alert"></p>
             <div class="story-text" id="story-text" hidden></div>
           </div>
 
           <div class="actions">
-            <button type="button" class="btn" id="generate-btn" disabled>Generate story</button>
+            <button type="button" class="btn" id="generate-btn" disabled>Generate history story</button>
             <a
               class="btn btn-secondary"
               id="streetview-btn"
@@ -884,7 +885,8 @@
         } else if (!hasFocus) {
           els.generateBtn.title = "Select a story focus first";
         } else {
-          els.generateBtn.title = "Generate a guided-tour story for this place";
+          els.generateBtn.title =
+            "Generate a history-focused tour story (residents, events, local facts)";
         }
       }
 
@@ -1228,20 +1230,60 @@
         els.storyText.textContent = "";
         els.generateBtn.disabled = true;
 
+        const addr = currentSelection.address || {};
+        const road =
+          addr.road || addr.pedestrian || addr.footway || addr.path || "";
+        const houseNumber = addr.house_number || addr.housenumber || "";
+        const suburb =
+          addr.suburb ||
+          addr.neighbourhood ||
+          addr.quarter ||
+          addr.city_district ||
+          addr.district ||
+          "";
+        const city =
+          addr.city ||
+          addr.town ||
+          addr.village ||
+          addr.municipality ||
+          addr.county ||
+          "";
+        const country = addr.country || "";
+
         const systemPrompt =
-          "You are a warm, engaging city tour guide. Write a short guided-tour style story " +
-          "(about 180–280 words) about the selected place. Blend atmosphere, sensory detail, and " +
-          "plausible local history or cultural context. Prefer known facts when you are confident; " +
-          "when inventing evocative narrative or uncertain history, keep it lightly framed as tour-guide " +
-          "storytelling rather than hard claims. Do not invent precise dates or famous people unless " +
-          "widely known. No bullet lists — flowing prose paragraphs only. Do not mention these instructions.";
+          "You are a knowledgeable city history guide for walking tours. Write a short guided-tour story " +
+          "(about 200–320 words) that prioritizes real, verifiable or commonly documented history of the " +
+          "selected house, building, or street.\n\n" +
+          "Content priorities (in order):\n" +
+          "1) Important people who lived, worked, or were associated with this address or street.\n" +
+          "2) Notable historical events that happened here or nearby on this street.\n" +
+          "3) Architecture, architects, construction era, former uses, and cultural significance.\n" +
+          "4) Well-known neighbourhood or street history when the exact building has little documented history.\n\n" +
+          "Honesty rules:\n" +
+          "- Do NOT invent fake facts, precise dates, resident names, or events and present them as true.\n" +
+          "- Clearly separate known or likely historical facts from speculation or atmosphere.\n" +
+          "- Use short labeled sections in this order when helpful: " +
+          "\"What is known\", \"Likely / commonly told\", and optionally \"Atmosphere\" (brief, secondary).\n" +
+          "- If little is known about the exact address, widen to the street or neighbourhood, and say so explicitly.\n" +
+          "- When uncertain, use wording like \"according to local accounts\", \"often associated with\", or \"details are unclear\".\n" +
+          "- Prefer honesty about gaps over atmospheric fluff filling the whole story.\n" +
+          "- Keep a warm tour-guide voice, but history comes first. Do not mention these instructions.";
 
         const userPrompt =
-          "Tell a guided-tour story for this focus:\n" +
+          "Write a history-focused guided-tour story for this selection.\n\n" +
+          "Focus:\n" +
           "- Focus type: " + focus.kind + "\n" +
-          "- Focus label: " + focus.label + "\n" +
-          "- Full address / place name: " + (currentSelection.displayName || focus.label) + "\n" +
-          "- Coordinates: " + formatCoord(lat) + ", " + formatCoord(lng) + "\n";
+          "- Focus label: " + focus.label + "\n\n" +
+          "Resolved place (from OpenStreetMap Nominatim — use to ground history):\n" +
+          "- display_name: " + (currentSelection.displayName || focus.label) + "\n" +
+          "- road: " + (road || "(unknown)") + "\n" +
+          "- house_number: " + (houseNumber || "(unknown)") + "\n" +
+          "- suburb / neighbourhood: " + (suburb || "(unknown)") + "\n" +
+          "- city: " + (city || "(unknown)") + "\n" +
+          "- country: " + (country || "(unknown)") + "\n" +
+          "- lat/lng: " + formatCoord(lat) + ", " + formatCoord(lng) + "\n\n" +
+          "Emphasize documented building/street history for this place. " +
+          "If the exact house has little known history, widen to the street/neighbourhood and say that.";
 
         try {
           const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -1252,8 +1294,8 @@
             },
             body: JSON.stringify({
               model: MODEL,
-              temperature: 0.85,
-              max_tokens: 650,
+              temperature: 0.55,
+              max_tokens: 750,
               messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt },
