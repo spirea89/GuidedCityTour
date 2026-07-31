@@ -200,11 +200,123 @@
       min-height: 0;
     }
 
-    #map {
+    .map-stack {
       flex: 1;
       min-height: 0;
+      display: flex;
+      flex-direction: column;
+      position: relative;
       background: var(--map-bg);
       z-index: 1;
+    }
+
+    #map,
+    #map-gl {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      background: var(--map-bg);
+    }
+
+    #map-gl {
+      display: none;
+    }
+
+    .map-stack.maplibre-active #map {
+      display: none;
+    }
+
+    .map-stack.maplibre-active #map-gl {
+      display: block;
+    }
+
+    .nearby-chips {
+      display: none;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      padding: 0.55rem 0.65rem;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border);
+      max-height: 7.5rem;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .nearby-chips.visible {
+      display: flex;
+    }
+
+    .nearby-chips-label {
+      flex: 1 1 100%;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+
+    .nearby-chip {
+      appearance: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-deep);
+      color: var(--text);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.45rem 0.7rem;
+      cursor: pointer;
+      line-height: 1.25;
+      text-align: left;
+      max-width: 100%;
+    }
+
+    .nearby-chip:hover,
+    .nearby-chip:focus-visible {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    .nearby-chip .chip-meta {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+    }
+
+    .mobile-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      padding: 0.35rem 0.55rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: transparent;
+      white-space: nowrap;
+    }
+
+    .mobile-toggle:hover {
+      color: var(--text);
+      background: var(--danger-soft);
+    }
+
+    .mobile-toggle input {
+      accent-color: var(--accent);
+      width: 1rem;
+      height: 1rem;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .mobile-toggle.on {
+      color: var(--accent);
+      border-color: rgba(61, 184, 168, 0.45);
+      background: var(--selected);
     }
 
     /* ---- Side panel ---- */
@@ -776,7 +888,7 @@
       min-width: 100px;
     }
 
-    /* ---- Responsive ---- */
+    /* ---- Responsive (desktop off / narrow screens) ---- */
     @media (max-width: 768px) {
       .header {
         flex-wrap: wrap;
@@ -808,7 +920,7 @@
         flex-direction: column;
       }
 
-      #map {
+      .map-stack {
         flex: 1 1 50%;
         min-height: 42vh;
       }
@@ -825,12 +937,117 @@
         aspect-ratio: 16 / 9;
       }
     }
+
+    /* ---- Mobile fit (explicit switch; also auto on first narrow visit) ---- */
+    body.mobile-fit .header {
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      padding: 0.75rem 0.9rem;
+    }
+
+    body.mobile-fit .brand {
+      font-size: 1.1rem;
+    }
+
+    body.mobile-fit .search-form {
+      flex: 1 1 100%;
+      max-width: none;
+      order: 3;
+      gap: 0.55rem;
+    }
+
+    body.mobile-fit .search-form input {
+      padding: 0.75rem 0.95rem;
+      font-size: 1rem;
+      min-height: 2.75rem;
+    }
+
+    body.mobile-fit .search-form button,
+    body.mobile-fit .btn {
+      min-height: 2.75rem;
+      padding: 0.7rem 1.05rem;
+      font-size: 0.95rem;
+    }
+
+    body.mobile-fit .btn-ghost {
+      min-height: 2.5rem;
+      padding: 0.55rem 0.85rem;
+      font-size: 0.85rem;
+    }
+
+    body.mobile-fit .search-status {
+      flex: 1 1 100%;
+      order: 4;
+      font-size: 0.85rem;
+    }
+
+    body.mobile-fit .header-actions {
+      margin-left: 0;
+      order: 2;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+
+    body.mobile-fit .main {
+      flex-direction: column;
+    }
+
+    body.mobile-fit .map-stack {
+      flex: 1 1 48%;
+      min-height: 40vh;
+    }
+
+    body.mobile-fit .panel {
+      flex: 0 0 auto;
+      width: 100%;
+      max-height: 52vh;
+      border-left: none;
+      border-top: 1px solid var(--border);
+    }
+
+    body.mobile-fit .panel-inner {
+      padding: 1rem 0.95rem;
+      gap: 1.1rem;
+    }
+
+    body.mobile-fit .focus-option {
+      padding: 0.85rem 0.95rem;
+      gap: 0.75rem;
+    }
+
+    body.mobile-fit .focus-option .focus-label {
+      font-size: 0.95rem;
+    }
+
+    body.mobile-fit .category-option {
+      padding: 0.55rem 0.75rem;
+      font-size: 0.88rem;
+    }
+
+    body.mobile-fit .actions .btn {
+      padding: 0.85rem 1rem;
+      font-size: 0.95rem;
+    }
+
+    body.mobile-fit .speech-buttons .btn {
+      min-width: 5.5rem;
+      padding: 0.7rem 0.85rem;
+    }
+
+    body.mobile-fit .embed-wrap {
+      aspect-ratio: 16 / 9;
+    }
+
+    body.mobile-fit .maplibregl-ctrl-group button {
+      width: 36px !important;
+      height: 36px !important;
+    }
   </style>
 </head>
 <body>
   <header class="header">
     <div class="brand">Guided <span>City Tour</span></div>
-    <span class="app-version" id="app-version" title="App version - compare with the latest GitHub Pages deploy">v2.1.5</span>
+    <span class="app-version" id="app-version" title="App version - compare with the latest GitHub Pages deploy">v2.2.0</span>
     <form class="search-form" id="search-form" role="search">
       <input
         type="search"
@@ -843,8 +1060,15 @@
       <button type="submit" id="search-btn">Search</button>
     </form>
     <div class="header-actions">
+      <label class="mobile-toggle" id="mobile-toggle" title="Phone-friendly layout and pitched nearby map">
+        <input type="checkbox" id="mobile-fit-input" />
+        <span>Mobile</span>
+      </label>
       <button type="button" class="btn btn-ghost" id="locate-btn" title="Center map on your location">
         Use my location
+      </button>
+      <button type="button" class="btn btn-ghost" id="compass-btn" title="Align map with device compass" hidden>
+        Compass
       </button>
       <button type="button" class="btn btn-ghost" id="settings-btn" title="OpenAI API key settings">
         <span class="key-dot" id="key-dot" aria-hidden="true"></span>API key
@@ -854,7 +1078,13 @@
   </header>
 
   <div class="main">
-    <div id="map" role="application" aria-label="Interactive map"></div>
+    <div class="map-stack" id="map-stack">
+      <div id="map" role="application" aria-label="Interactive map"></div>
+      <div id="map-gl" role="application" aria-label="3D-ish mobile map" hidden></div>
+      <div class="nearby-chips" id="nearby-chips" aria-label="Nearby landmarks" hidden>
+        <div class="nearby-chips-label">Nearby (tap to select)</div>
+      </div>
+    </div>
 
     <aside class="panel" aria-label="Location details and story">
       <div class="panel-inner">
@@ -946,7 +1176,7 @@
             >Open in Google Maps</a>
           </div>
 
-          <p class="panel-version" id="panel-version">GuidedCityTour v2.1.5 | 2026-07-31</p>
+          <p class="panel-version" id="panel-version">GuidedCityTour v2.2.0 | 2026-07-31</p>
         </div>
       </div>
     </aside>

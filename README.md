@@ -1,12 +1,12 @@
 ﻿# Guided City Tour (Map Explorer)
 
-A static map app for exploring locations and generating **grounded** guided-tour stories. Built with Leaflet, OpenStreetMap / Nominatim, and OpenAI — no backend required for the demo path.
+A static map app for exploring locations and generating **grounded** guided-tour stories. Built with Leaflet (desktop), optional MapLibre GL (mobile), OpenStreetMap / Nominatim, and OpenAI — no backend required for the demo path.
 
 **Live site:** [https://spirea89.github.io/GuidedCityTour/](https://spirea89.github.io/GuidedCityTour/)
 
-**On-page version:** look for **`v2.1.5`** in the header badge and side-panel footer. After a deploy, hard-refresh if the version does not match - GitHub Pages can serve a cached older build briefly.
+**On-page version:** look for **`v2.2.0`** in the header badge and side-panel footer. After a deploy, hard-refresh if the version does not match - GitHub Pages can serve a cached older build briefly.
 
-## Architecture (v2.1)
+## Architecture (v2.1+)
 
 Hallucination-resistant AI layer: the LLM is a **narration/reasoning engine**, not the source of truth. Pipeline:
 
@@ -19,11 +19,15 @@ Hallucination-resistant AI layer: the LLM is a **narration/reasoning engine**, n
 Full design: **[docs/AI_ARCHITECTURE.md](docs/AI_ARCHITECTURE.md)**  
 Also: [prompts](docs/ai/prompts.md) · [JSON schema](docs/ai/json-schema.md) · [implementation plan](docs/ai/implementation-plan.md) · [backend interfaces](docs/ai/backend-interfaces.md) · [Supabase cache](docs/ai/supabase-cache.md)
 
-Client modules live under `js/services/` (`BuildingIdentifier` / `PlaceIdentifier`, `ResearchService`, `FactVerifier`, `NarrationGenerator`, `PromptBuilder`, `CacheService` / `TourCache`, `OpenAIService`, `ResponseValidator`, `TourPipeline`).
+Client modules live under `js/services/` (`BuildingIdentifier` / `PlaceIdentifier`, `ResearchService`, `FactVerifier`, `NarrationGenerator`, `PromptBuilder`, `CacheService` / `TourCache`, `OpenAIService`, `ResponseValidator`, `TourPipeline`, `MobileMap`).
 
 ## Features
 
-- Interactive Leaflet map with OpenStreetMap tiles
+- Interactive Leaflet map with OpenStreetMap tiles (desktop / Mobile off)
+- **Mobile** header switch: phone-friendly stacked layout, larger tap targets; preference in `localStorage` (`gct_mobile_fit`); auto-enables on narrow viewports when unset
+- Mobile MapLibre GL map (OpenFreeMap, no API key): geolocation centering, ~60 degree pitch, optional device compass, 3D building extrusions when tile data allows
+- Nearby landmark chips (~150 m) under the mobile map for tapping buildings/POIs next to you
+- Fallback: if MapLibre fails to load, keep Leaflet 2D but still apply the mobile layout
 - Nominatim place search and reverse geocoding
 - Optional browser geolocation (“Use my location”)
 - Side panel: Google Maps embed, coordinates, Street View / Maps links
@@ -33,7 +37,6 @@ Client modules live under `js/services/` (`BuildingIdentifier` / `PlaceIdentifie
 - **Degraded path:** if web research is blocked (CORS / API), the app **refuses to invent history**
 - IndexedDB cache for successful grounded tours (per browser); Supabase adapter stub for shared production cache
 - **Listen** with Web Speech API TTS (English narrations)
-- Mobile-responsive layout
 
 ## OpenAI API key (browser-only demo)
 
@@ -61,11 +64,18 @@ Stories need an [OpenAI API key](https://platform.openai.com/api-keys).
    - Structured JSON validated; citations rendered when present
 4. If Responses/`web_search` fails from the browser, you get `web_search_unavailable` — map identity only, **no fabricated history**.
 
+## Mobile 3D notes
+
+- Tiles/style: [OpenFreeMap](https://openfreemap.org/) Liberty + planet vector source (free, no key).
+- Extrusions use OSM building heights when present (`render_height` / `height`). Coverage varies by city; where 3D data is thin, the pitched map plus nearby chips still let you pick places next to you.
+- Compass uses `DeviceOrientationEvent` (may require a tap on **Compass** / iOS permission).
+- Desktop with **Mobile** off keeps the original Leaflet flow unchanged.
+
 ## Deploy to GitHub Pages
 
 1. Push to GitHub `main`.
 2. **Settings → Pages** → Deploy from branch `main` / `(root)`.
-3. Confirm live badge shows `v2.1.5` (hard-refresh if needed).
+3. Confirm live badge shows `v2.2.0` (hard-refresh if needed).
 
 ES modules require `http://` or `https://` (not always `file://`). Serve locally with any static server if needed.
 
@@ -76,6 +86,7 @@ Chat Completions with a user key often works in the browser. **Responses API + w
 ## Stack
 
 - Leaflet + OpenStreetMap tiles + Nominatim
+- MapLibre GL JS + OpenFreeMap (mobile mode, CDN)
 - Vanilla JS ES modules (`js/`)
 - OpenAI Responses API (+ web_search) with Chat Completions degraded path
 - IndexedDB tour cache (+ Supabase adapter stub)

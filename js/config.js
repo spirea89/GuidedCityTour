@@ -1,12 +1,16 @@
 /** GuidedCityTour shared config - no secrets. */
-export const APP_VERSION = "v2.1.5";
+export const APP_VERSION = "v2.2.0";
 export const APP_VERSION_DATE = "2026-07-31";
-export const PIPELINE_VERSION = "2.1.5";
+export const PIPELINE_VERSION = "2.2.0";
 
 export const DEFAULT_MAP = { lat: 48.8566, lng: 2.3522, zoom: 13 };
 
 export const STORAGE_KEY = "gct_openai_api_key";
 export const MODEL_STORAGE_KEY = "gct_openai_model";
+/** "1" / "0" - mobile fit layout + pitched MapLibre when available */
+export const MOBILE_FIT_STORAGE_KEY = "gct_mobile_fit";
+/** Nearby POI chips under the mobile map (meters) */
+export const MOBILE_NEARBY_CHIP_M = 150;
 export const MODEL_QUALITY = "gpt-4o";
 export const MODEL_ECONOMY = "gpt-4o-mini";
 export const DEFAULT_MODEL = MODEL_QUALITY;

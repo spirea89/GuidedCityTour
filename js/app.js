@@ -8,6 +8,8 @@ import {
   DEFAULT_MAP,
   STORAGE_KEY,
   MODEL_STORAGE_KEY,
+  MOBILE_FIT_STORAGE_KEY,
+  MOBILE_NEARBY_CHIP_M,
   MODEL_QUALITY,
   MODEL_ECONOMY,
   DEFAULT_MODEL,
@@ -27,6 +29,10 @@ import {
   mergeLandmarkIntoAddress,
   isLandmarkClassType,
 } from "./services/LandmarkFinder.js";
+import {
+  createMobileMap,
+  loadMapLibreFromCdn,
+} from "./services/MobileMap.js";
 
 const map = L.map("map", { zoomControl: true }).setView(
   [DEFAULT_MAP.lat, DEFAULT_MAP.lng],
@@ -44,6 +50,7 @@ let youAreHereMarker = null;
 let currentSelection = null;
 let reverseAbort = null;
 let nearbyAbort = null;
+let chipsAbort = null;
 let speechState = "idle";
 let preferredVoice = null;
 let lastSpeakText = "";
@@ -53,6 +60,12 @@ let speechTimer = null;
 let speechQueue = [];
 let speechIndex = 0;
 let speechPausedBetween = false;
+let mobileFit = false;
+let mobileMap = null;
+let mobileMapReady = false;
+let mobileMapFailed = false;
+let lastUserLat = null;
+let lastUserLng = null;
 
 const els = {
   placeholder: document.getElementById("panel-placeholder"),
@@ -68,6 +81,12 @@ const els = {
   btn: document.getElementById("search-btn"),
   status: document.getElementById("search-status"),
   locateBtn: document.getElementById("locate-btn"),
+  compassBtn: document.getElementById("compass-btn"),
+  mobileToggle: document.getElementById("mobile-toggle"),
+  mobileFitInput: document.getElementById("mobile-fit-input"),
+  mapStack: document.getElementById("map-stack"),
+  mapGl: document.getElementById("map-gl"),
+  nearbyChips: document.getElementById("nearby-chips"),
   settingsBtn: document.getElementById("settings-btn"),
   keyDot: document.getElementById("key-dot"),
   keyModal: document.getElementById("key-modal"),
@@ -611,6 +630,10 @@ function showLocation(lat, lng, label, options) {
   if (marker) marker.setLatLng([latNum, lngNum]);
   else marker = L.marker([latNum, lngNum]).addTo(map);
 
+  if (mobileMap && mobileMapReady) {
+    mobileMap.placeSelection(latNum, lngNum);
+  }
+
   els.lat.textContent = formatCoord(latNum);
   els.lng.textContent = formatCoord(lngNum);
   els.embed.src =
@@ -666,6 +689,10 @@ function showLocation(lat, lng, label, options) {
   clearStory();
   updateGenerateButton();
   reverseGeocode(latNum, lngNum, label, opts.preferredLandmark || null);
+
+  if (mobileFit) {
+    refreshNearbyChips(latNum, lngNum);
+  }
 }
 
 function buildFocusOptions(address, displayName, landmark, highConfidence) {
@@ -1030,6 +1057,8 @@ async function reverseGeocode(lat, lng, fallbackLabel, preferredLandmark) {
 }
 
 function placeYouAreHere(lat, lng) {
+  lastUserLat = lat;
+  lastUserLng = lng;
   const icon = L.divIcon({
     className: "you-are-here-icon",
     html: '<div class="you-are-here-dot" title="You are here"></div>',
@@ -1043,6 +1072,9 @@ function placeYouAreHere(lat, lng) {
       zIndexOffset: 1000,
       title: "You are here",
     }).addTo(map);
+  }
+  if (mobileMap && mobileMapReady) {
+    mobileMap.placeYouAreHere(lat, lng);
   }
 }
 
@@ -1063,13 +1095,20 @@ function requestLocation(fromButton) {
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
       placeYouAreHere(lat, lng);
-      map.flyTo([lat, lng], 16, { duration: 1.2 });
+      if (mobileFit && mobileMap && mobileMapReady) {
+        mobileMap.flyTo(lat, lng, 17);
+      } else {
+        map.flyTo([lat, lng], 16, { duration: 1.2 });
+      }
       setGeoBanner(
-        "Map centered on your location. Blue marker = you are here.",
+        mobileFit
+          ? "Centered on you. Tap a building or a nearby chip to start a tour."
+          : "Map centered on your location. Blue marker = you are here.",
         "ok"
       );
       els.locateBtn.disabled = false;
       if (fromButton) showLocation(lat, lng);
+      else if (mobileFit) refreshNearbyChips(lat, lng);
     },
     (err) => {
       els.locateBtn.disabled = false;
@@ -1087,7 +1126,7 @@ function requestLocation(fromButton) {
       }
       setGeoBanner(msg, "error");
     },
-    { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 }
+    { enableHighAccuracy: !!mobileFit, timeout: 12000, maximumAge: 60000 }
   );
 }
 
@@ -1220,6 +1259,9 @@ els.form.addEventListener("submit", async (e) => {
       ? landmarkFromNominatimHit(hit, lat, lng)
       : null;
     map.flyTo([lat, lng], 15, { duration: 1.2 });
+    if (mobileMap && mobileMapReady) {
+      mobileMap.flyTo(lat, lng, 16);
+    }
     showLocation(lat, lng, hit.display_name, {
       preferredLandmark: preferredLandmark,
     });
@@ -1233,6 +1275,29 @@ els.form.addEventListener("submit", async (e) => {
 
 els.locateBtn.addEventListener("click", () => requestLocation(true));
 els.settingsBtn.addEventListener("click", () => openKeyModal(false));
+
+if (els.mobileFitInput) {
+  els.mobileFitInput.addEventListener("change", () => {
+    setMobileFit(!!els.mobileFitInput.checked, true);
+  });
+}
+
+if (els.compassBtn) {
+  els.compassBtn.addEventListener("click", async () => {
+    if (!mobileMap) return;
+    els.compassBtn.disabled = true;
+    const ok = await mobileMap.startCompass();
+    els.compassBtn.disabled = false;
+    if (ok) {
+      setGeoBanner("Compass on - map bearing follows your device when allowed.", "ok");
+    } else {
+      setGeoBanner(
+        "Compass permission denied or unavailable. You can still rotate the map by drag.",
+        "error"
+      );
+    }
+  });
+}
 
 els.saveKeyBtn.addEventListener("click", () => {
   const key = els.apiKeyInput.value.trim() || getApiKey();
@@ -1316,6 +1381,287 @@ if (!getApiKey()) {
   setTimeout(() => openKeyModal(true), 400);
 }
 
+initMobileFit();
 requestLocation(false);
-setTimeout(() => map.invalidateSize(), 0);
-window.addEventListener("resize", () => map.invalidateSize());
+setTimeout(() => {
+  map.invalidateSize();
+  if (mobileMap) mobileMap.resize();
+}, 0);
+window.addEventListener("resize", () => {
+  map.invalidateSize();
+  if (mobileMap) mobileMap.resize();
+});
+
+// ---- Mobile fit + MapLibre ----
+
+function readMobileFitPref() {
+  try {
+    const stored = localStorage.getItem(MOBILE_FIT_STORAGE_KEY);
+    if (stored === "1") return true;
+    if (stored === "0") return false;
+  } catch (_) {
+    /* ignore */
+  }
+  return null;
+}
+
+function writeMobileFitPref(on) {
+  try {
+    localStorage.setItem(MOBILE_FIT_STORAGE_KEY, on ? "1" : "0");
+  } catch (_) {
+    /* ignore */
+  }
+}
+
+function isNarrowViewport() {
+  return (
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(max-width: 768px)").matches
+  );
+}
+
+function initMobileFit() {
+  const pref = readMobileFitPref();
+  const enable = pref === null ? isNarrowViewport() : pref;
+  setMobileFit(enable, pref !== null);
+  if (pref === null && enable) {
+    // Persist auto-enable so layout stays consistent across reloads on phone
+    writeMobileFitPref(true);
+  }
+}
+
+function setMobileFit(on, persist) {
+  mobileFit = !!on;
+  if (persist) writeMobileFitPref(mobileFit);
+  document.body.classList.toggle("mobile-fit", mobileFit);
+  if (els.mobileFitInput) els.mobileFitInput.checked = mobileFit;
+  if (els.mobileToggle) {
+    els.mobileToggle.classList.toggle("on", mobileFit);
+  }
+  if (els.compassBtn) {
+    els.compassBtn.hidden = !mobileFit;
+  }
+
+  if (mobileFit) {
+    ensureMobileMap();
+    if (els.nearbyChips) {
+      els.nearbyChips.hidden = false;
+      els.nearbyChips.classList.add("visible");
+    }
+    const chipLat =
+      lastUserLat != null
+        ? lastUserLat
+        : currentSelection
+          ? currentSelection.lat
+          : null;
+    const chipLng =
+      lastUserLng != null
+        ? lastUserLng
+        : currentSelection
+          ? currentSelection.lng
+          : null;
+    if (chipLat != null && chipLng != null) {
+      refreshNearbyChips(chipLat, chipLng);
+    }
+    setTimeout(() => {
+      map.invalidateSize();
+      if (mobileMap) mobileMap.resize();
+    }, 50);
+  } else {
+    teardownMobileMapUi();
+    setTimeout(() => map.invalidateSize(), 50);
+  }
+}
+
+function teardownMobileMapUi() {
+  if (els.mapStack) els.mapStack.classList.remove("maplibre-active");
+  if (els.mapGl) els.mapGl.hidden = true;
+  if (els.nearbyChips) {
+    els.nearbyChips.classList.remove("visible");
+    els.nearbyChips.hidden = true;
+  }
+  if (mobileMap) {
+    mobileMap.stopCompass();
+  }
+}
+
+async function ensureMobileMap() {
+  if (mobileMapFailed) {
+    // Keep Leaflet 2D under mobile layout
+    teardownMobileMapUi();
+    if (els.nearbyChips) {
+      els.nearbyChips.hidden = false;
+      els.nearbyChips.classList.add("visible");
+    }
+    return;
+  }
+  if (mobileMap) {
+    if (els.mapGl) els.mapGl.hidden = false;
+    if (els.mapStack) els.mapStack.classList.add("maplibre-active");
+    setTimeout(() => mobileMap.resize(), 40);
+    return;
+  }
+  if (!els.mapGl) return;
+
+  try {
+    await loadMapLibreFromCdn();
+  } catch (err) {
+    mobileMapFailed = true;
+    console.warn("[MobileFit] MapLibre CDN load failed:", err);
+    setGeoBanner(
+      "3D map unavailable - using flat map with mobile layout. Nearby chips still work.",
+      "error"
+    );
+    teardownMobileMapUi();
+    if (els.nearbyChips) {
+      els.nearbyChips.hidden = false;
+      els.nearbyChips.classList.add("visible");
+    }
+    return;
+  }
+
+  if (!mobileFit) return;
+
+  els.mapGl.hidden = false;
+  mobileMap = createMobileMap({
+    container: els.mapGl,
+    onSelect: (lat, lng, meta) => {
+      const preferred =
+        meta && meta.name
+          ? {
+              name: meta.name,
+              lat: lat,
+              lng: lng,
+              typeLabel: meta.isBuilding ? "building" : "place",
+              dist_m: 0,
+              score: 80,
+            }
+          : null;
+      showLocation(lat, lng, meta && meta.name ? meta.name : "", {
+        preferredLandmark: preferred,
+      });
+      setStatus("");
+    },
+    onReady: (info) => {
+      mobileMapReady = true;
+      if (els.mapStack) els.mapStack.classList.add("maplibre-active");
+      if (lastUserLat != null && lastUserLng != null) {
+        mobileMap.placeYouAreHere(lastUserLat, lastUserLng);
+        mobileMap.flyTo(lastUserLat, lastUserLng, 17);
+      } else if (currentSelection) {
+        mobileMap.flyTo(currentSelection.lat, currentSelection.lng, 16.5);
+        mobileMap.placeSelection(currentSelection.lat, currentSelection.lng);
+      }
+      const tip = info && info.has3d
+        ? "Mobile map ready with 3D building extrusions (OpenFreeMap). Tap a building or a nearby chip."
+        : "Mobile pitched map ready. 3D building data limited here - use nearby chips to pick places next to you.";
+      setGeoBanner(tip, "ok");
+      setTimeout(() => mobileMap.resize(), 60);
+    },
+    onFail: (err) => {
+      mobileMapFailed = true;
+      mobileMap = null;
+      mobileMapReady = false;
+      console.warn("[MobileFit] MapLibre init failed:", err);
+      setGeoBanner(
+        "3D map failed to start - using flat map with mobile layout.",
+        "error"
+      );
+      teardownMobileMapUi();
+      if (els.nearbyChips) {
+        els.nearbyChips.hidden = false;
+        els.nearbyChips.classList.add("visible");
+      }
+    },
+  });
+
+  if (!mobileMap) {
+    mobileMapFailed = true;
+    teardownMobileMapUi();
+  }
+}
+
+function clearNearbyChips() {
+  if (!els.nearbyChips) return;
+  const label = els.nearbyChips.querySelector(".nearby-chips-label");
+  els.nearbyChips.innerHTML = "";
+  if (label) {
+    els.nearbyChips.appendChild(label);
+  } else {
+    const div = document.createElement("div");
+    div.className = "nearby-chips-label";
+    div.textContent = "Nearby (tap to select)";
+    els.nearbyChips.appendChild(div);
+  }
+}
+
+async function refreshNearbyChips(lat, lng) {
+  if (!els.nearbyChips || !mobileFit) return;
+  if (chipsAbort) chipsAbort.abort();
+  chipsAbort = new AbortController();
+  const signal = chipsAbort.signal;
+  clearNearbyChips();
+  const loading = document.createElement("button");
+  loading.type = "button";
+  loading.className = "nearby-chip";
+  loading.disabled = true;
+  loading.textContent = "Finding nearby...";
+  els.nearbyChips.appendChild(loading);
+
+  try {
+    const list = await fetchNearbyLandmarks(lat, lng, signal);
+    if (signal.aborted) return;
+    clearNearbyChips();
+    const near = (list || [])
+      .filter(function (p) {
+        return p && p.name && (p.dist_m == null || p.dist_m <= MOBILE_NEARBY_CHIP_M);
+      })
+      .slice(0, 10);
+
+    if (!near.length) {
+      const empty = document.createElement("button");
+      empty.type = "button";
+      empty.className = "nearby-chip";
+      empty.disabled = true;
+      empty.textContent = "No named landmarks within ~150 m";
+      els.nearbyChips.appendChild(empty);
+      return;
+    }
+
+    near.forEach(function (place) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "nearby-chip";
+      const title = document.createTextNode(place.name);
+      btn.appendChild(title);
+      const meta = document.createElement("span");
+      meta.className = "chip-meta";
+      const bits = [];
+      if (place.typeLabel) bits.push(place.typeLabel);
+      if (place.dist_m != null) bits.push("~" + place.dist_m + " m");
+      meta.textContent = bits.join(" - ") || "landmark";
+      btn.appendChild(meta);
+      btn.addEventListener("click", function () {
+        const plat = place.lat != null ? place.lat : lat;
+        const plng = place.lng != null ? place.lng : lng;
+        if (mobileMap && mobileMapReady) {
+          mobileMap.flyTo(plat, plng, 17.5);
+        } else {
+          map.flyTo([plat, plng], 17, { duration: 0.8 });
+        }
+        showLocation(plat, plng, place.name, { preferredLandmark: place });
+        setStatus("");
+      });
+      els.nearbyChips.appendChild(btn);
+    });
+  } catch (err) {
+    if (err && err.name === "AbortError") return;
+    clearNearbyChips();
+    const fail = document.createElement("button");
+    fail.type = "button";
+    fail.className = "nearby-chip";
+    fail.disabled = true;
+    fail.textContent = "Nearby lookup failed";
+    els.nearbyChips.appendChild(fail);
+  }
+}
