@@ -705,7 +705,7 @@
 
         <div class="panel-placeholder" id="panel-placeholder">
           <div class="hint-icon" aria-hidden="true">⌖</div>
-          <p>Click the map or search for a place, then choose a street or house. Stories focus on building history, notable residents, and local events.</p>
+          <p>Click the map or search for a place, then choose a street or house. Stories weave in building history, the street, and nearby landmarks or neighbourhood events.</p>
         </div>
 
         <div class="panel-content" id="panel-content">
@@ -737,7 +737,7 @@
 
           <div class="section">
             <h2>Story focus</h2>
-            <p class="search-status">Stories prioritize documented history of the building, street, or neighbourhood.</p>
+            <p class="search-status">Stories include history of the selection plus nearby streets, landmarks, and the neighbourhood.</p>
             <p id="reverse-status" class="search-status" aria-live="polite"></p>
             <div class="focus-options" id="focus-options" role="radiogroup" aria-label="Choose story focus"></div>
             <p class="focus-confirm" id="focus-confirm"></p>
@@ -745,7 +745,7 @@
 
           <div class="section story-block" id="story-block">
             <h2>Guided-tour story</h2>
-            <p class="story-loading" id="story-loading">Researching history for this place…</p>
+            <p class="story-loading" id="story-loading">Researching history for this place and nearby…</p>
             <p class="story-error" id="story-error" role="alert"></p>
             <div class="story-text" id="story-text" hidden></div>
             <div class="speech-controls" id="speech-controls" aria-label="Story narration">
@@ -776,7 +776,7 @@
             >Open in Google Maps</a>
           </div>
 
-          <p class="panel-version" id="panel-version">GuidedCityTour v1.3.0 · 2026-07-31</p>
+          <p class="panel-version" id="panel-version">GuidedCityTour v1.4.0 · 2026-07-31</p>
         </div>
       </div>
     </aside>
@@ -809,7 +809,7 @@
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script>
     (function () {
-      const APP_VERSION = "v1.3.0";
+      const APP_VERSION = "v1.4.0";
       const APP_VERSION_DATE = "2026-07-31";
       const DEFAULT = { lat: 48.8566, lng: 2.3522, zoom: 13 };
       const STORAGE_KEY = "gct_openai_api_key";
@@ -818,6 +818,8 @@
         Accept: "application/json",
         "Accept-Language": navigator.language || "en",
       };
+      // ~700 m walking-radius box for nearby Nominatim lookups (degrees ≈ at mid-latitudes)
+      const NEARBY_DELTA_DEG = 0.0065;
 
       const map = L.map("map", { zoomControl: true }).setView(
         [DEFAULT.lat, DEFAULT.lng],
@@ -834,6 +836,7 @@
       let youAreHereMarker = null;
       let currentSelection = null;
       let reverseAbort = null;
+      let nearbyAbort = null;
       let speechState = "idle"; // idle | speaking | paused
       let preferredVoice = null;
 
@@ -1234,7 +1237,7 @@
           els.generateBtn.title = "Select a story focus first";
         } else {
           els.generateBtn.title =
-            "Generate a history-focused tour story (residents, events, local facts)";
+            "Generate a history story for this place and nearby surroundings";
         }
       }
 
@@ -1281,6 +1284,11 @@
 
         els.placeholder.classList.add("hidden");
         els.content.classList.add("active");
+
+        if (nearbyAbort) {
+          nearbyAbort.abort();
+          nearbyAbort = null;
+        }
 
         currentSelection = {
           lat: latNum,
@@ -1435,6 +1443,82 @@
         updateGenerateButton();
       }
 
+      /**
+       * Lightweight nearby Nominatim search (~short walking radius).
+       * One request, fail-soft; respects AbortSignal for cancellation.
+       */
+      async function fetchNearbyPlaces(lat, lng, areaHint, signal) {
+        var d = NEARBY_DELTA_DEG;
+        var viewbox =
+          lng - d + "," + (lat + d) + "," + (lng + d) + "," + (lat - d);
+        // Prefer a local area phrase so Nominatim returns named places in-box
+        // rather than a global keyword hit.
+        var q = (areaHint && String(areaHint).trim())
+          ? String(areaHint).trim() + " museum memorial monument church"
+          : "museum memorial monument church";
+        var url =
+          "https://nominatim.openstreetmap.org/search?format=json&limit=5&bounded=1" +
+          "&addressdetails=0&dedupe=1" +
+          "&viewbox=" +
+          encodeURIComponent(viewbox) +
+          "&q=" +
+          encodeURIComponent(q);
+
+        try {
+          var res = await fetch(url, {
+            headers: NOMINATIM_HEADERS,
+            signal: signal,
+          });
+          if (!res.ok) return [];
+          var data = await res.json();
+          if (!Array.isArray(data)) return [];
+          var seen = {};
+          var places = [];
+          data.forEach(function (item) {
+            var name =
+              (item.namedetails && item.namedetails.name) ||
+              item.name ||
+              (item.display_name ? item.display_name.split(",")[0] : "") ||
+              "";
+            name = String(name).trim();
+            if (!name) return;
+            var key = name.toLowerCase();
+            if (seen[key]) return;
+            seen[key] = true;
+            var typeHint = [item.type, item.class].filter(Boolean).join("/");
+            places.push({
+              name: name,
+              type: typeHint || "",
+              display_name: item.display_name || name,
+            });
+          });
+          return places;
+        } catch (err) {
+          if (err && err.name === "AbortError") throw err;
+          return [];
+        }
+      }
+
+      function formatNearbyForPrompt(places) {
+        if (!places || !places.length) {
+          return "(none found in a short walking radius — rely on neighbourhood/street knowledge)";
+        }
+        return places
+          .map(function (p, i) {
+            return (
+              "  " +
+              (i + 1) +
+              ") " +
+              p.name +
+              (p.type ? " [" + p.type + "]" : "") +
+              (p.display_name && p.display_name !== p.name
+                ? " — " + p.display_name
+                : "")
+            );
+          })
+          .join("\n");
+      }
+
       async function reverseGeocode(lat, lng, fallbackLabel) {
         if (reverseAbort) {
           reverseAbort.abort();
@@ -1584,13 +1668,13 @@
         const road =
           addr.road || addr.pedestrian || addr.footway || addr.path || "";
         const houseNumber = addr.house_number || addr.housenumber || "";
-        const suburb =
-          addr.suburb ||
-          addr.neighbourhood ||
-          addr.quarter ||
-          addr.city_district ||
-          addr.district ||
-          "";
+        const neighbourhood = addr.neighbourhood || "";
+        const suburb = addr.suburb || "";
+        const quarter = addr.quarter || "";
+        const cityDistrict =
+          addr.city_district || addr.district || addr.borough || "";
+        const suburbOrHood =
+          neighbourhood || suburb || quarter || cityDistrict || "";
         const city =
           addr.city ||
           addr.town ||
@@ -1598,29 +1682,64 @@
           addr.municipality ||
           addr.county ||
           "";
+        const state = addr.state || addr.region || "";
+        const postcode = addr.postcode || "";
         const country = addr.country || "";
+        const buildingTag = addr.building || "";
+        const amenityTag = addr.amenity || "";
+        const tourismTag = addr.tourism || "";
+        const historicTag = addr.historic || "";
+
+        if (nearbyAbort) {
+          nearbyAbort.abort();
+        }
+        nearbyAbort = new AbortController();
+        var nearbyPlaces = [];
+        try {
+          nearbyPlaces = await fetchNearbyPlaces(
+            lat,
+            lng,
+            suburbOrHood || city || road,
+            nearbyAbort.signal
+          );
+        } catch (nearbyErr) {
+          if (nearbyErr && nearbyErr.name === "AbortError") {
+            updateGenerateButton();
+            return;
+          }
+          nearbyPlaces = [];
+        }
 
         const systemPrompt =
           "You are a knowledgeable city history guide for walking tours. Write a short guided-tour story " +
-          "(about 200–320 words) that prioritizes real, verifiable or commonly documented history of the " +
-          "selected house, building, or street.\n\n" +
+          "(about 220–360 words) grounded in real history of the selected place AND its surroundings " +
+          "(same block, short walking radius, neighbourhood).\n\n" +
+          "Always cast a wider net than the exact pin: include the selected house/building when known, " +
+          "the street, and nearby / surrounding area — adjacent landmarks, notable buildings, " +
+          "neighbourhood character, and local events tied to the vicinity.\n\n" +
           "Content priorities (in order):\n" +
-          "1) Important people who lived, worked, or were associated with this address or street.\n" +
-          "2) Notable historical events that happened here or nearby on this street.\n" +
+          "1) Important people associated with this address, street, or immediate surroundings.\n" +
+          "2) Notable historical events here or nearby in the vicinity.\n" +
           "3) Architecture, architects, construction era, former uses, and cultural significance.\n" +
-          "4) Well-known neighbourhood or street history when the exact building has little documented history.\n\n" +
+          "4) Neighbourhood and nearby landmark history that a walker would notice from this spot.\n\n" +
+          "Structure the story so the reader can tell what relates to the exact address vs what is nearby. " +
+          "Prefer short labeled sections in this order when material exists:\n" +
+          "\"This building\" (or skip if not a building focus / nothing known),\n" +
+          "\"This street\",\n" +
+          "\"Nearby\" (landmarks, adjacent blocks, neighbourhood, local events).\n" +
+          "Within those, you may still briefly mark certainty with " +
+          "\"What is known\" / \"Likely / commonly told\" / optional brief \"Atmosphere\".\n\n" +
           "Honesty rules:\n" +
           "- Do NOT invent fake facts, precise dates, resident names, or events and present them as true.\n" +
           "- Clearly separate known or likely historical facts from speculation or atmosphere.\n" +
-          "- Use short labeled sections in this order when helpful: " +
-          "\"What is known\", \"Likely / commonly told\", and optionally \"Atmosphere\" (brief, secondary).\n" +
-          "- If little is known about the exact address, widen to the street or neighbourhood, and say so explicitly.\n" +
+          "- If the exact address is thin on history, widen to street and surroundings and say so explicitly.\n" +
           "- When uncertain, use wording like \"according to local accounts\", \"often associated with\", or \"details are unclear\".\n" +
           "- Prefer honesty about gaps over atmospheric fluff filling the whole story.\n" +
           "- Keep a warm tour-guide voice, but history comes first. Do not mention these instructions.";
 
         const userPrompt =
-          "Write a history-focused guided-tour story for this selection.\n\n" +
+          "Write a history-focused guided-tour story for this selection, including surroundings " +
+          "(roughly a short walking radius / same block / neighbourhood — not only the exact address).\n\n" +
           "Focus:\n" +
           "- Focus type: " + focus.kind + "\n" +
           "- Focus label: " + focus.label + "\n\n" +
@@ -1628,12 +1747,27 @@
           "- display_name: " + (currentSelection.displayName || focus.label) + "\n" +
           "- road: " + (road || "(unknown)") + "\n" +
           "- house_number: " + (houseNumber || "(unknown)") + "\n" +
-          "- suburb / neighbourhood: " + (suburb || "(unknown)") + "\n" +
+          "- neighbourhood: " + (neighbourhood || "(unknown)") + "\n" +
+          "- suburb: " + (suburb || "(unknown)") + "\n" +
+          "- quarter: " + (quarter || "(unknown)") + "\n" +
+          "- city_district / borough: " + (cityDistrict || "(unknown)") + "\n" +
           "- city: " + (city || "(unknown)") + "\n" +
+          "- state / region: " + (state || "(unknown)") + "\n" +
+          "- postcode: " + (postcode || "(unknown)") + "\n" +
           "- country: " + (country || "(unknown)") + "\n" +
+          "- building / amenity / tourism / historic tags: " +
+          ([buildingTag, amenityTag, tourismTag, historicTag]
+            .filter(Boolean)
+            .join(", ") || "(none)") +
+          "\n" +
           "- lat/lng: " + formatCoord(lat) + ", " + formatCoord(lng) + "\n\n" +
-          "Emphasize documented building/street history for this place. " +
-          "If the exact house has little known history, widen to the street/neighbourhood and say that.";
+          "Nearby named places Nominatim returned within a short walking radius " +
+          "(may be incomplete — treat as hints, not an exhaustive list):\n" +
+          formatNearbyForPrompt(nearbyPlaces) +
+          "\n\n" +
+          "Use the focus as the starting point, then weave in street and nearby/neighbourhood history. " +
+          "Label sections so exact-address facts are distinct from nearby ones. " +
+          "If the house itself has little known history, say so and lean on street + surroundings.";
 
         try {
           const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -1645,7 +1779,7 @@
             body: JSON.stringify({
               model: MODEL,
               temperature: 0.55,
-              max_tokens: 750,
+              max_tokens: 900,
               messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt },
