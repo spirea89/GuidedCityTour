@@ -18,6 +18,7 @@ import {
   NEARBY_ALLOWED_CLASSES,
   NEARBY_SKIP_TYPES,
   STORY_CATEGORIES,
+  LANDMARK_UI_SOFT_WAIT_MS,
   OPENAI_TTS_MODEL_PREFERRED,
   OPENAI_TTS_MODEL_FALLBACK,
   OPENAI_TTS_VOICES,
@@ -63,6 +64,8 @@ let currentSelection = null;
 let reverseAbort = null;
 let nearbyAbort = null;
 let chipsAbort = null;
+/** True after the user manually changes the story-focus radio. */
+let focusTouchedByUser = false;
 let speechState = "idle";
 /** "openai" | "webspeech" | null */
 let speechEngine = null;
@@ -1045,6 +1048,7 @@ function showLocation(lat, lng, label, options) {
     nearbyPlaces: [],
     preferredLandmark: opts.preferredLandmark || null,
   };
+  focusTouchedByUser = false;
 
   els.focusOptions.innerHTML = "";
   els.focusConfirm.classList.remove("visible");
@@ -1053,6 +1057,28 @@ function showLocation(lat, lng, label, options) {
   els.reverseStatus.classList.remove("error");
   clearStory();
   updateGenerateButton();
+
+  // Prefer known landmark (search/chip) immediately so focus UI is usable
+  // while reverse geocode + Overpass enrichment continue.
+  if (opts.preferredLandmark && opts.preferredLandmark.name) {
+    const earlyName =
+      opts.preferredLandmark.name || label || "";
+    if (earlyName) {
+      els.placeName.textContent = earlyName;
+      els.placeName.hidden = false;
+    }
+    const earlyOptions = buildFocusOptions(
+      {},
+      earlyName,
+      opts.preferredLandmark,
+      true
+    );
+    currentSelection.options = earlyOptions;
+    currentSelection.landmark = opts.preferredLandmark;
+    els.reverseStatus.textContent = "Looking up address...";
+    renderFocusOptions(earlyOptions);
+  }
+
   reverseGeocode(latNum, lngNum, label, opts.preferredLandmark || null);
 
   if (mobileFit) {
@@ -1187,18 +1213,24 @@ function buildFocusOptions(address, displayName, landmark, highConfidence) {
   return options;
 }
 
-function renderFocusOptions(options) {
+function renderFocusOptions(options, preferId) {
   els.focusOptions.innerHTML = "";
+  let selectedIndex = 0;
+  if (preferId) {
+    const idx = options.findIndex((o) => o.id === preferId);
+    if (idx >= 0) selectedIndex = idx;
+  }
   options.forEach((opt, index) => {
     const label = document.createElement("label");
-    label.className = "focus-option" + (index === 0 ? " selected" : "");
+    label.className =
+      "focus-option" + (index === selectedIndex ? " selected" : "");
     label.setAttribute("for", "focus-" + opt.id);
     const input = document.createElement("input");
     input.type = "radio";
     input.name = "story-focus";
     input.id = "focus-" + opt.id;
     input.value = opt.id;
-    input.checked = index === 0;
+    input.checked = index === selectedIndex;
     const text = document.createElement("div");
     const title = document.createElement("div");
     title.className = "focus-label";
@@ -1212,13 +1244,14 @@ function renderFocusOptions(options) {
     label.appendChild(text);
     els.focusOptions.appendChild(label);
     input.addEventListener("change", () => {
+      focusTouchedByUser = true;
       selectFocus(opt);
       els.focusOptions.querySelectorAll(".focus-option").forEach((el) => {
         el.classList.toggle("selected", el === label);
       });
     });
   });
-  if (options.length) selectFocus(options[0]);
+  if (options.length) selectFocus(options[selectedIndex]);
   if (mobileFit) scrollStoryGeneratorIntoView();
 }
 
@@ -1314,83 +1347,160 @@ async function fetchNearbyPlaces(lat, lng, areaHint, signal) {
   }
 }
 
+function selectionStillCurrent(lat, lng) {
+  return (
+    !!currentSelection &&
+    currentSelection.lat === lat &&
+    currentSelection.lng === lng
+  );
+}
+
+function softWait(ms, signal) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve("timeout"), ms);
+    if (!signal) return;
+    const onAbort = () => {
+      clearTimeout(timer);
+      resolve("aborted");
+    };
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+/**
+ * Apply reverse + landmark results to the selection panel.
+ * Safe to call multiple times as enrichment arrives.
+ */
+function applyPlaceLookupResult(lat, lng, data, nearbyLandmarks, fallbackLabel, preferredLandmark) {
+  if (!selectionStillCurrent(lat, lng)) return;
+
+  let address = (data && data.address) || {};
+  let displayName =
+    (data && data.display_name) || fallbackLabel || "";
+
+  const fromReverse = data ? landmarkFromNominatimHit(data, lat, lng) : null;
+  const preferred =
+    preferredLandmark ||
+    (currentSelection && currentSelection.preferredLandmark) ||
+    null;
+  const candidates = Array.isArray(nearbyLandmarks)
+    ? nearbyLandmarks.slice()
+    : [];
+  if (fromReverse) candidates.push(fromReverse);
+  const picked = pickPreferredLandmark(candidates, preferred);
+  const landmark = picked.highConfidence
+    ? picked.best
+    : preferred && preferred.name
+      ? preferred
+      : picked.best;
+  const preferredMatch = !!(
+    preferred &&
+    preferred.name &&
+    landmark &&
+    landmark.name &&
+    landmark.name.toLowerCase() === preferred.name.toLowerCase()
+  );
+  const highConfidence = picked.highConfidence || preferredMatch;
+
+  if (landmark && highConfidence) {
+    address = mergeLandmarkIntoAddress(address, landmark);
+    displayName = landmark.displayName || landmark.name || displayName;
+    els.placeName.textContent = landmark.name;
+    els.placeName.hidden = false;
+  } else if (displayName) {
+    els.placeName.textContent = displayName;
+    els.placeName.hidden = false;
+  }
+
+  currentSelection.address = address;
+  currentSelection.displayName = displayName;
+  currentSelection.landmark = landmark || null;
+
+  const options = buildFocusOptions(
+    address,
+    displayName,
+    landmark,
+    highConfidence
+  );
+  currentSelection.options = options;
+  els.reverseStatus.textContent = "";
+  els.reverseStatus.classList.remove("error");
+  const keepId =
+    focusTouchedByUser && currentSelection.focus
+      ? currentSelection.focus.id
+      : null;
+  renderFocusOptions(options, keepId);
+}
+
 async function reverseGeocode(lat, lng, fallbackLabel, preferredLandmark) {
   if (reverseAbort) reverseAbort.abort();
   reverseAbort = new AbortController();
   const signal = reverseAbort.signal;
-  try {
-    const reversePromise = reverseGeocodePlace(lat, lng, { signal });
+  let reverseData = null;
+  let landmarksDone = false;
+  let nearbyLandmarks = [];
 
-    const landmarksPromise = fetchNearbyLandmarks(lat, lng, signal).catch(
-      (err) => {
-        if (err && err.name === "AbortError") throw err;
-        return [];
+  const reversePromise = reverseGeocodePlace(lat, lng, { signal });
+  const landmarksPromise = fetchNearbyLandmarks(lat, lng, signal)
+    .then((list) => {
+      nearbyLandmarks = Array.isArray(list) ? list : [];
+      landmarksDone = true;
+      return nearbyLandmarks;
+    })
+    .catch((err) => {
+      if (err && err.name === "AbortError") throw err;
+      nearbyLandmarks = [];
+      landmarksDone = true;
+      return [];
+    });
+
+  // When landmarks arrive after provisional UI, enrich without blocking.
+  landmarksPromise
+    .then(() => {
+      if (!selectionStillCurrent(lat, lng) || signal.aborted) return;
+      if (reverseData) {
+        applyPlaceLookupResult(
+          lat,
+          lng,
+          reverseData,
+          nearbyLandmarks,
+          fallbackLabel,
+          preferredLandmark
+        );
       }
+    })
+    .catch(() => undefined);
+
+  try {
+    reverseData = await reversePromise;
+    if (!selectionStillCurrent(lat, lng) || signal.aborted) return;
+
+    // Brief soft wait so a fast Overpass hit lands in the first paint.
+    if (!landmarksDone) {
+      await Promise.race([
+        landmarksPromise.catch(() => undefined),
+        softWait(LANDMARK_UI_SOFT_WAIT_MS, signal),
+      ]);
+    }
+    if (!selectionStillCurrent(lat, lng) || signal.aborted) return;
+
+    applyPlaceLookupResult(
+      lat,
+      lng,
+      reverseData,
+      nearbyLandmarks,
+      fallbackLabel,
+      preferredLandmark
     );
 
-    const [data, nearbyLandmarks] = await Promise.all([
-      reversePromise,
-      landmarksPromise,
-    ]);
-
-    if (
-      !currentSelection ||
-      currentSelection.lat !== lat ||
-      currentSelection.lng !== lng
-    ) {
-      return;
+    if (!landmarksDone) {
+      els.reverseStatus.textContent = "Finding nearby landmarks...";
+      els.reverseStatus.classList.remove("error");
     }
-
-    let address = data.address || {};
-    let displayName = data.display_name || fallbackLabel || "";
-
-    const fromReverse = landmarkFromNominatimHit(data, lat, lng);
-    const preferred =
-      preferredLandmark ||
-      (currentSelection && currentSelection.preferredLandmark) ||
-      null;
-    const candidates = nearbyLandmarks.slice();
-    if (fromReverse) candidates.push(fromReverse);
-    const picked = pickPreferredLandmark(candidates, preferred);
-    const landmark = picked.highConfidence
-      ? picked.best
-      : preferred && preferred.name
-        ? preferred
-        : picked.best;
-    const preferredMatch =
-      !!(
-        preferred &&
-        preferred.name &&
-        landmark &&
-        landmark.name &&
-        landmark.name.toLowerCase() === preferred.name.toLowerCase()
-      );
-    const highConfidence = picked.highConfidence || preferredMatch;
-
-    if (landmark && highConfidence) {
-      address = mergeLandmarkIntoAddress(address, landmark);
-      displayName = landmark.displayName || landmark.name || displayName;
-      els.placeName.textContent = landmark.name;
-      els.placeName.hidden = false;
-    } else if (displayName) {
-      els.placeName.textContent = displayName;
-      els.placeName.hidden = false;
-    }
-
-    currentSelection.address = address;
-    currentSelection.displayName = displayName;
-    currentSelection.landmark = landmark || null;
-
-    const options = buildFocusOptions(
-      address,
-      displayName,
-      landmark,
-      highConfidence
-    );
-    currentSelection.options = options;
-    els.reverseStatus.textContent = "";
-    els.reverseStatus.classList.remove("error");
-    renderFocusOptions(options);
   } catch (err) {
     if (err && err.name === "AbortError") return;
     const detail = formatGeocoderError(
@@ -1402,14 +1512,30 @@ async function reverseGeocode(lat, lng, fallbackLabel, preferredLandmark) {
     if (!currentSelection) return;
     const preferred =
       preferredLandmark || currentSelection.preferredLandmark || null;
-    const options = buildFocusOptions(
-      {},
-      fallbackLabel || "",
-      preferred,
-      !!(preferred && preferred.name)
+    // Still try landmarks if reverse failed — do not block forever.
+    if (!landmarksDone) {
+      try {
+        await Promise.race([
+          landmarksPromise.catch(() => undefined),
+          softWait(LANDMARK_UI_SOFT_WAIT_MS, signal),
+        ]);
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    if (!selectionStillCurrent(lat, lng)) return;
+    applyPlaceLookupResult(
+      lat,
+      lng,
+      null,
+      nearbyLandmarks,
+      fallbackLabel,
+      preferred
     );
-    currentSelection.options = options;
-    renderFocusOptions(options);
+    if (detail) {
+      els.reverseStatus.textContent = detail;
+      els.reverseStatus.classList.add("error");
+    }
   }
 }
 

@@ -1,7 +1,7 @@
 /** GuidedCityTour shared config - no secrets. */
-export const APP_VERSION = "v2.2.3";
-export const APP_VERSION_DATE = "2026-07-31";
-export const PIPELINE_VERSION = "2.2.3";
+export const APP_VERSION = "v2.2.4";
+export const APP_VERSION_DATE = "2026-08-02";
+export const PIPELINE_VERSION = "2.2.4";
 
 export const DEFAULT_MAP = { lat: 48.8566, lng: 2.3522, zoom: 13 };
 
@@ -52,6 +52,13 @@ export const NEARBY_MAX_M = 700;
  * over bare highway/road reverse-geocode results.
  */
 export const LANDMARK_RADIUS_M = 150;
+/** Fast first Overpass pass — tight radius for quick selection UI */
+export const LANDMARK_RADIUS_FAST_M = 60;
+/** Overpass server-side timeouts (seconds) for fast vs expand passes */
+export const LANDMARK_OVERPASS_TIMEOUT_S = 8;
+export const LANDMARK_OVERPASS_EXPAND_TIMEOUT_S = 12;
+/** Soft client wait before showing reverse-only focus UI (ms) */
+export const LANDMARK_UI_SOFT_WAIT_MS = 900;
 /** Minimum score (type weight minus distance penalty) to auto-select a landmark */
 export const LANDMARK_HIGH_CONFIDENCE_SCORE = 55;
 export const OVERPASS_URL = "https://overpass-api.de/api/interpreter";

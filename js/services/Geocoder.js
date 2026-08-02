@@ -4,6 +4,7 @@
  * Fall back to Nominatim when Photon fails; serialize Nominatim to ~1 req/sec.
  */
 import { NOMINATIM_HEADERS, PHOTON_BASE } from "../config.js";
+import { geoCacheKey, geoCachedFetch } from "./GeoLookupCache.js";
 
 /** @typedef {"photon"|"nominatim"} GeocoderSource */
 
@@ -295,31 +296,36 @@ export async function searchPlaces(query, options = {}) {
 
 /**
  * Reverse-geocode a pin. Photon first, Nominatim fallback.
+ * Cached by rounded lat/lng (memory + IndexedDB).
  * @returns {Promise<object>} Nominatim-shaped hit
  */
 export async function reverseGeocodePlace(lat, lng, options = {}) {
   const signal = options.signal;
-  let lastErr = null;
+  const key = geoCacheKey("rev", lat, lng);
 
-  try {
-    return await photonReverse(lat, lng, signal);
-  } catch (err) {
-    if (err && err.name === "AbortError") throw err;
-    lastErr = err;
-  }
+  return geoCachedFetch(
+    key,
+    async (sharedSignal) => {
+      try {
+        return await photonReverse(lat, lng, sharedSignal);
+      } catch (err) {
+        if (err && err.name === "AbortError") throw err;
+      }
 
-  try {
-    return await nominatimReverse(lat, lng, signal);
-  } catch (err) {
-    if (err && err.name === "AbortError") throw err;
-    lastErr = err;
-    if (err instanceof GeocoderError) throw err;
-    throw new GeocoderError(
-      (err && err.message) ||
-        "Could not look up this location. Try again in a moment.",
-      { code: "reverse_failed" }
-    );
-  }
+      try {
+        return await nominatimReverse(lat, lng, sharedSignal);
+      } catch (err) {
+        if (err && err.name === "AbortError") throw err;
+        if (err instanceof GeocoderError) throw err;
+        throw new GeocoderError(
+          (err && err.message) ||
+            "Could not look up this location. Try again in a moment.",
+          { code: "reverse_failed" }
+        );
+      }
+    },
+    signal
+  );
 }
 
 /**

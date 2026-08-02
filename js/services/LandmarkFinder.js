@@ -5,10 +5,14 @@
  */
 import {
   LANDMARK_RADIUS_M,
+  LANDMARK_RADIUS_FAST_M,
+  LANDMARK_OVERPASS_TIMEOUT_S,
+  LANDMARK_OVERPASS_EXPAND_TIMEOUT_S,
   LANDMARK_HIGH_CONFIDENCE_SCORE,
   OVERPASS_URL,
 } from "../config.js";
 import { ENTITY_TYPES, inferEntityType } from "../models/place.js";
+import { geoCacheKey, geoCachedFetch } from "./GeoLookupCache.js";
 
 /** Headers for Nominatim / Overpass. Node 22 exposes navigator.userAgent as
  * "Node.js/..." which Nominatim rejects - send an app UA in that case.
@@ -25,7 +29,7 @@ function osmClientHeaders() {
     typeof navigator !== "undefined" ? String(navigator.userAgent || "") : "";
   if (!ua || /node\.js/i.test(ua)) {
     headers["User-Agent"] =
-      "GuidedCityTour/2.2.3 (https://github.com/spirea89/GuidedCityTour)";
+      "GuidedCityTour/2.2.4 (https://github.com/spirea89/GuidedCityTour)";
   }
   return headers;
 }
@@ -259,7 +263,7 @@ function primaryClassTypeFromTags(tags) {
   return { cls: "", typ: "" };
 }
 
-function landmarkFromOverpassElement(el, clickLat, clickLng) {
+function landmarkFromOverpassElement(el, clickLat, clickLng, maxRadius) {
   const tags = el.tags || {};
   const name = String(tags.name || "").trim();
   if (!name || name.length < 2) return null;
@@ -284,7 +288,8 @@ function landmarkFromOverpassElement(el, clickLat, clickLng) {
   const distM = Math.round(
     haversineMeters(clickLat, clickLng, itemLat, itemLng)
   );
-  if (distM > LANDMARK_RADIUS_M) return null;
+  const radiusCap = maxRadius != null ? maxRadius : LANDMARK_RADIUS_M;
+  if (distM > radiusCap) return null;
 
   const typeScore = scoreLandmarkType(cls, typ);
   if (typeScore <= 0) return null;
@@ -312,21 +317,32 @@ function landmarkFromOverpassElement(el, clickLat, clickLng) {
  * Query nearby named landmarks within LANDMARK_RADIUS_M of the click.
  * Overpass only — avoids hammering public Nominatim (which returns HTTP 429
  * when LandmarkFinder used to fire ~10 structured searches per map click).
+ * Uses a tight first pass, then optional expand; cached by rounded lat/lng.
  */
 export async function fetchNearbyLandmarks(lat, lng, signal) {
+  const key = geoCacheKey("lm", lat, lng);
   try {
-    return await fetchLandmarksOverpass(lat, lng, signal);
+    return await geoCachedFetch(
+      key,
+      (sharedSignal) => fetchLandmarksOverpass(lat, lng, sharedSignal),
+      signal
+    );
   } catch (err) {
     if (err && err.name === "AbortError") throw err;
     return [];
   }
 }
 
-function buildOverpassQuery(lat, lng, radius) {
+/**
+ * Compact Overpass QL: fewer clauses, short timeout, optional expand radius.
+ */
+function buildOverpassQuery(lat, lng, radius, timeoutSec) {
   const around = "(around:" + radius + "," + lat + "," + lng + ")";
   const named = "nwr" + around + "[name]";
   return (
-    "[out:json][timeout:20];\n(\n" +
+    "[out:json][timeout:" +
+    timeoutSec +
+    "];\n(\n" +
     "  " +
     named +
     "[tourism];\n" +
@@ -335,50 +351,17 @@ function buildOverpassQuery(lat, lng, radius) {
     "[historic];\n" +
     "  " +
     named +
-    "[leisure=stadium];\n" +
+    '[leisure~"^(stadium|sports_centre|park|garden)$"];\n' +
     "  " +
     named +
-    "[leisure=sports_centre];\n" +
+    '[amenity~"^(theatre|place_of_worship|museum|arts_centre)$"];\n' +
     "  " +
     named +
-    "[leisure=park];\n" +
+    '[building~"^(stadium|church|cathedral|chapel|castle|mosque|synagogue|temple)$"];\n' +
     "  " +
     named +
-    "[leisure=garden];\n" +
-    "  " +
-    named +
-    "[amenity=theatre];\n" +
-    "  " +
-    named +
-    "[amenity=place_of_worship];\n" +
-    "  " +
-    named +
-    "[amenity=museum];\n" +
-    "  " +
-    named +
-    "[amenity=arts_centre];\n" +
-    "  " +
-    named +
-    "[building=stadium];\n" +
-    "  " +
-    named +
-    "[building=church];\n" +
-    "  " +
-    named +
-    "[building=cathedral];\n" +
-    "  " +
-    named +
-    "[building=chapel];\n" +
-    "  " +
-    named +
-    "[building=castle];\n" +
-    "  " +
-    named +
-    "[man_made=monument];\n" +
-    "  " +
-    named +
-    "[man_made=statue];\n" +
-    ");\nout center tags 25;"
+    '[man_made~"^(monument|statue|tower)$"];\n' +
+    ");\nout center tags 20;"
   );
 }
 
@@ -388,40 +371,116 @@ const OVERPASS_ENDPOINTS = [
   "https://overpass.private.coffee/api/interpreter",
 ];
 
+function linkSignals(parent, timeoutMs) {
+  const ctrl = new AbortController();
+  let timer = null;
+  const abortFromParent = () => ctrl.abort();
+  if (parent) {
+    if (parent.aborted) {
+      ctrl.abort();
+    } else {
+      parent.addEventListener("abort", abortFromParent, { once: true });
+    }
+  }
+  if (timeoutMs > 0) {
+    timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  }
+  return {
+    signal: ctrl.signal,
+    dispose() {
+      if (timer) clearTimeout(timer);
+      if (parent) parent.removeEventListener("abort", abortFromParent);
+    },
+  };
+}
+
 async function fetchLandmarksOverpass(lat, lng, signal) {
-  const query = buildOverpassQuery(lat, lng, LANDMARK_RADIUS_M);
-  for (let i = 0; i < OVERPASS_ENDPOINTS.length; i++) {
+  // Tight pass first for fast time-to-selection; expand only if empty.
+  // Primary (+ one failover) on the fast pass; full mirror list on expand.
+  let out = await queryOverpassRadius(
+    lat,
+    lng,
+    LANDMARK_RADIUS_FAST_M,
+    LANDMARK_OVERPASS_TIMEOUT_S,
+    signal,
+    2
+  );
+  if (out.length) return out;
+  if (LANDMARK_RADIUS_FAST_M >= LANDMARK_RADIUS_M) return out;
+  out = await queryOverpassRadius(
+    lat,
+    lng,
+    LANDMARK_RADIUS_M,
+    LANDMARK_OVERPASS_EXPAND_TIMEOUT_S,
+    signal,
+    OVERPASS_ENDPOINTS.length
+  );
+  return out;
+}
+
+/**
+ * Try Overpass endpoints sequentially on transport/HTTP failure only.
+ * A successful empty response does not fan out to every mirror.
+ */
+async function queryOverpassRadius(
+  lat,
+  lng,
+  radius,
+  timeoutSec,
+  signal,
+  maxEndpoints
+) {
+  const query = buildOverpassQuery(lat, lng, radius, timeoutSec);
+  // Client-side ceiling slightly above server timeout so we do not hang forever.
+  const clientMs = (timeoutSec + 2) * 1000;
+  const limit = Math.min(
+    maxEndpoints || OVERPASS_ENDPOINTS.length,
+    OVERPASS_ENDPOINTS.length
+  );
+
+  for (let i = 0; i < limit; i++) {
     if (signal && signal.aborted) {
       const abortErr = new Error("Aborted");
       abortErr.name = "AbortError";
       throw abortErr;
     }
     const endpoint = OVERPASS_ENDPOINTS[i];
+    const linked = linkSignals(signal, clientMs);
     try {
       // GET avoids CORS preflight 406 that POST can trigger in browsers
       const url = endpoint + "?data=" + encodeURIComponent(query);
       const res = await fetch(url, {
         method: "GET",
         headers: osmClientHeaders(),
-        signal,
+        signal: linked.signal,
       });
+      linked.dispose();
       if (!res.ok) continue;
       const data = await res.json();
       const elements = Array.isArray(data.elements) ? data.elements : [];
-      const out = normalizeOverpassElements(elements, lat, lng);
-      if (out.length) return out;
+      return normalizeOverpassElements(elements, lat, lng, radius);
     } catch (err) {
-      if (err && err.name === "AbortError") throw err;
+      linked.dispose();
+      if (err && err.name === "AbortError") {
+        if (signal && signal.aborted) throw err;
+        // Timed out this endpoint — try next mirror
+        continue;
+      }
     }
   }
   return [];
 }
 
-function normalizeOverpassElements(elements, lat, lng) {
+function normalizeOverpassElements(elements, lat, lng, maxRadius) {
   const seen = new Set();
   const out = [];
   for (let i = 0; i < elements.length; i++) {
-    const lm = landmarkFromOverpassElement(elements[i], lat, lng);
+    const lm = landmarkFromOverpassElement(
+      elements[i],
+      lat,
+      lng,
+      maxRadius != null ? maxRadius : LANDMARK_RADIUS_M
+    );
     if (!lm) continue;
     const key = lm.name.toLowerCase();
     if (seen.has(key)) {
