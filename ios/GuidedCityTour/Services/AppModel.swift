@@ -4,7 +4,7 @@ import CoreLocation
 
 enum AppScreen: Hashable {
     case map
-    case quest
+    case pins
 }
 
 @MainActor
@@ -23,7 +23,7 @@ final class AppModel {
 
     let defaultCenter = CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522)
     var pickerCenter = CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522)
-    var pickerRadius: Double = 140
+    var pickerRadius: Double = 700
     var pickerLabel = "Selected area"
     var didAutoCenterOnUser = false
     var questUserCoordinate: CLLocationCoordinate2D?

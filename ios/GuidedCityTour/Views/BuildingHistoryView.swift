@@ -58,7 +58,7 @@ struct BuildingHistoryView: View {
             Text(building.entityType.displayLabel + " · " + building.typeLabel)
                 .font(.subheadline)
                 .foregroundStyle(QuestTheme.accent)
-            Text("Sketch from OpenStreetMap — not a photoreal copy. History still uses the grounded research pipeline.")
+            Text("A sketch of the place on the map. History still uses the grounded research pipeline — verified claims only.")
                 .font(.caption)
                 .foregroundStyle(QuestTheme.muted)
         }

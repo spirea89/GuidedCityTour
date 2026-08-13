@@ -116,6 +116,7 @@ struct OverpassService: Sendable {
                 tags: tags,
                 isLandmark: isLM,
                 typeLabel: EntityTyping.typeLabel(from: tags),
+                whyNotable: "",
                 osmId: el.id,
                 osmType: el.type
             )

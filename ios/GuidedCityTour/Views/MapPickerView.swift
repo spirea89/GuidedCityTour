@@ -94,7 +94,7 @@ struct MapPickerView: View {
     private var controlCard: some View {
         @Bindable var app = app
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Choose an area to gamify")
+            Text("Choose an area to explore")
                 .font(.headline)
             Text(app.pickerLabel)
                 .font(.subheadline)
@@ -104,9 +104,9 @@ struct MapPickerView: View {
                 .foregroundStyle(QuestTheme.muted)
 
             HStack {
-                Text("Radius \(Int(app.pickerRadius)) m")
+                Text("Radius \(distanceLabel(app.pickerRadius))")
                     .font(.subheadline)
-                Slider(value: $app.pickerRadius, in: 80...250, step: 10)
+                Slider(value: $app.pickerRadius, in: 300...1500, step: 50)
             }
 
             if let err = app.searchError {
@@ -117,13 +117,13 @@ struct MapPickerView: View {
             }
 
             Button {
-                Task { await gamify() }
+                Task { await discover() }
             } label: {
                 HStack {
                     if app.isLoadingBuildings {
                         ProgressView().tint(QuestTheme.bgDeep)
                     }
-                    Text(app.isLoadingBuildings ? app.loadMessage : "Gamify this area")
+                    Text(app.isLoadingBuildings ? app.loadMessage : "Find notable places")
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
@@ -132,7 +132,7 @@ struct MapPickerView: View {
             .buttonStyle(.borderedProminent)
             .disabled(app.isLoadingBuildings)
 
-            Text("Buildings become a low-poly quest district. Tap one later to read sourced history.")
+            Text("The guide picks a handful of the most important buildings and monuments, then pins them. Tap a pin to start its story.")
                 .font(.caption)
                 .foregroundStyle(QuestTheme.muted)
         }
@@ -184,10 +184,24 @@ struct MapPickerView: View {
         }
     }
 
-    private func gamify() async {
+    private func distanceLabel(_ meters: Double) -> String {
+        if meters >= 1000 {
+            return String(format: "%.1f km", meters / 1000)
+        }
+        return "\(Int(meters)) m"
+    }
+
+    private func discover() async {
+        guard settings.hasApiKey else {
+            app.searchError = "Add an OpenAI API key in Settings so the guide can pick the important buildings."
+            showSettings = true
+            return
+        }
+
         app.isLoadingBuildings = true
         app.loadError = nil
-        app.loadMessage = "Sketching nearby buildings…"
+        app.searchError = nil
+        app.loadMessage = "Naming this neighbourhood…"
         defer { app.isLoadingBuildings = false }
 
         let center = app.pickerCenter
@@ -198,13 +212,19 @@ struct MapPickerView: View {
             app.pickerLabel = label
         }
 
+        app.loadMessage = "Finding the important buildings…"
         do {
-            let buildings = try await OverpassService.shared.fetchWorld(center: center, radius: radius)
+            let service = LandmarkDiscoveryService(apiKey: settings.apiKey, model: settings.model)
+            let buildings = try await service.discover(
+                center: center,
+                radius: radius,
+                areaLabel: label
+            )
             app.buildings = buildings
             app.selection = MapSelection(center: center, radiusMeters: radius, label: label)
             app.questUserCoordinate = location.coordinate
             app.selectedBuilding = nil
-            app.screen = .quest
+            app.screen = .pins
         } catch {
             app.loadError = error.localizedDescription
             app.searchError = error.localizedDescription

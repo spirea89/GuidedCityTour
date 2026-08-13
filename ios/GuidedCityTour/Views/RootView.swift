@@ -14,8 +14,8 @@ struct RootView: View {
                 switch app.screen {
                 case .map:
                     MapPickerView()
-                case .quest:
-                    GameWorldView()
+                case .pins:
+                    LandmarkMapView()
                 }
             }
         }

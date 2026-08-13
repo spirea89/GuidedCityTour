@@ -57,6 +57,7 @@ struct GameBuilding: Identifiable, Hashable {
     let tags: [String: String]
     let isLandmark: Bool
     let typeLabel: String
+    let whyNotable: String
     let osmId: Int64?
     let osmType: String?
 

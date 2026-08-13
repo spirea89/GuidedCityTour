@@ -27,7 +27,7 @@ struct SettingsView: View {
                             settings.apiKey = ""
                         }
                     }
-                    Text("The key stays in the Keychain on this device and is sent only to OpenAI when you discover history.")
+                    Text("The key stays in the Keychain on this device and is sent only to OpenAI when you find notable places or start a story.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -35,7 +35,7 @@ struct SettingsView: View {
                 Section("About") {
                     LabeledContent("App", value: AppIdentity.displayName)
                     LabeledContent("Pipeline", value: AppIdentity.version)
-                    Text("City Quest is the iOS game-sketch layer of Guided City Tour. Buildings are stylized OpenStreetMap footprints, not photoreal copies. History still requires sources.")
+                    Text("City Quest pins the most important buildings in a neighbourhood. Tap a pin for sourced history — the same grounded tour pipeline as Guided City Tour.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

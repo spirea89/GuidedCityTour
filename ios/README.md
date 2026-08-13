@@ -1,16 +1,12 @@
 # City Quest (iOS)
 
-Native SwiftUI + SceneKit app that turns the Guided City Tour pipeline into a location game.
-
-The web app stays as-is. This project **does not replace** the GitHub Pages site — it is a companion iOS client with a stylized 3D district instead of a photoreal map.
+Native SwiftUI companion to Guided City Tour. The web app stays as-is.
 
 ## What it does
 
-1. **Pick an area** on a MapKit map (your GPS location, search, or pan the crosshair).
-2. **Gamify** that radius: OpenStreetMap building footprints become a low-poly quest district (SceneKit). Landmarks get brighter colors, churches get a spire, named places get floating labels.
-3. **Tap a building** to open sourced history through the same identify → research → narrate contract as the web app (OpenAI Responses + `web_search` when available; otherwise it refuses to invent history).
-
-Buildings are **sketches**, not copies of the real facade.
+1. **Pick an area** on the map (GPS, search, or pan the crosshair) and set a radius.
+2. **Find notable places** — OpenAI (with web search when available) picks a short list of the most important buildings and monuments. Pins are placed with Photon geocoding, not a full building dump from Overpass.
+3. **Tap a pin** to start that place’s sourced history (identify → research → narrate).
 
 ## Open in Xcode
 
@@ -21,40 +17,20 @@ Requires **Xcode 15.4+** (iOS 17 SDK) on a Mac.
 3. Signing & Capabilities → choose your **Team** (bundle id `com.guidedcitytour.ios`).
 4. Run on an iPhone / iPad, or the Simulator.
 
+An OpenAI API key is required to rank notable buildings and to generate stories. It is stored in the Keychain.
+
 ### Simulator location
 
-**Features → Location → Custom Location** (or Apple’s city presets). The map will center on that coordinate so you can gamify a real neighbourhood without leaving your desk.
+**Features → Location → Custom Location** (or a city preset).
 
-### Device
-
-Grant **While Using the App** location access. History needs an OpenAI API key (Settings or onboarding). The key is stored in the Keychain and sent only to OpenAI.
-
-## Architecture (mirrors the web pipeline)
+## Architecture
 
 | iOS | Web |
 |---|---|
-| `OverpassService` | `LandmarkFinder` + building footprints |
+| `LandmarkDiscoveryService` | OpenAI ranks notable places in the chosen area |
 | `GeocoderService` (Photon) | `Geocoder.js` |
 | `TourPipeline` | `TourPipeline.js` |
 | `OpenAIClient` | `OpenAIService.js` |
-| `TourCache` (on-device files) | IndexedDB cache |
-| SceneKit quest district | MapLibre 3D extrusions |
+| `TourCache` | IndexedDB cache |
 
-Identity still comes from OSM. Verified claims still require sources.
-
-## Project layout
-
-```
-ios/
-  GuidedCityTour.xcodeproj
-  GuidedCityTour/
-    GuidedCityTourApp.swift
-    Theme.swift
-    Models/
-    Services/
-    Views/
-      MapPickerView.swift      # choose area + radius
-      GameWorldView.swift      # 3D district
-      QuestSceneView.swift     # SceneKit
-      BuildingHistoryView.swift
-```
+History still requires sources. The pin list is a short, curated set — not every OSM building.

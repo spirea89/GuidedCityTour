@@ -12,15 +12,20 @@ enum GeocoderService {
     private static let photon = "https://photon.komoot.io/api/"
     private static let reverse = "https://photon.komoot.io/reverse"
 
-    static func search(_ query: String) async throws -> [PlaceHit] {
+    static func search(_ query: String, near: CLLocationCoordinate2D? = nil, limit: Int = 6) async throws -> [PlaceHit] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return [] }
         var comps = URLComponents(string: photon)!
-        comps.queryItems = [
+        var items = [
             URLQueryItem(name: "q", value: q),
-            URLQueryItem(name: "limit", value: "6"),
+            URLQueryItem(name: "limit", value: String(limit)),
             URLQueryItem(name: "lang", value: "en")
         ]
+        if let near {
+            items.append(URLQueryItem(name: "lat", value: String(near.latitude)))
+            items.append(URLQueryItem(name: "lon", value: String(near.longitude)))
+        }
+        comps.queryItems = items
         let features = try await fetchFeatures(comps.url!)
         return features.compactMap(hit(from:))
     }

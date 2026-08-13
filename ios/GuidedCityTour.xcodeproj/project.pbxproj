@@ -20,10 +20,10 @@
 		55A811792DEBE5FE55886521 /* TourPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FC749A1441AE4DF7C5DF49F /* TourPipeline.swift */; };
 		838086257F85A3779D3875E5 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDDE7558A6403A54860ADEA3 /* Theme.swift */; };
 		0A50C4A70DD85493514A07EB /* BuildingHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54DB3D7B9CD353B113BA9AB1 /* BuildingHistoryView.swift */; };
-		28EA13A8F3016B146AAE5F43 /* GameWorldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA6D9912AB02D5B16E678F1 /* GameWorldView.swift */; };
+		3525B11ED0C311FA1A2C7607 /* LandmarkDiscoveryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68774D4A5040493CAF354C8D /* LandmarkDiscoveryService.swift */; };
+		28148BB7BE04DA33339D2E41 /* LandmarkMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E87300D5E5CF25B6AE67FBEA /* LandmarkMapView.swift */; };
 		BAC5FBD7912E2D90A74955BF /* MapPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B621DE77DFF7D78CB32826C7 /* MapPickerView.swift */; };
 		0DEA314B9C473E3C428CECA3 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E88EEFD85283152A18EA5FDA /* OnboardingView.swift */; };
-		B88F966C404536321ED3EAFE /* QuestSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0D61011FD3CF297467A6EFE /* QuestSceneView.swift */; };
 		162D836C7C50E6AD190F4643 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C9EF36D5E561B4500076AF /* RootView.swift */; };
 		0366047E1EAD5CC5EA2D8838 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A190201E6D76FCFD340ACF /* SettingsView.swift */; };
 		04A7814E4EEC70DE7D6C41B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8D562B3E40B6C9EC53F38F07 /* Assets.xcassets */; };
@@ -43,10 +43,10 @@
 		1FC749A1441AE4DF7C5DF49F /* TourPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TourPipeline.swift; sourceTree = "<group>"; };
 		BDDE7558A6403A54860ADEA3 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		54DB3D7B9CD353B113BA9AB1 /* BuildingHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingHistoryView.swift; sourceTree = "<group>"; };
-		7BA6D9912AB02D5B16E678F1 /* GameWorldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameWorldView.swift; sourceTree = "<group>"; };
+		68774D4A5040493CAF354C8D /* LandmarkDiscoveryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkDiscoveryService.swift; sourceTree = "<group>"; };
+		E87300D5E5CF25B6AE67FBEA /* LandmarkMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkMapView.swift; sourceTree = "<group>"; };
 		B621DE77DFF7D78CB32826C7 /* MapPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapPickerView.swift; sourceTree = "<group>"; };
 		E88EEFD85283152A18EA5FDA /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
-		B0D61011FD3CF297467A6EFE /* QuestSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestSceneView.swift; sourceTree = "<group>"; };
 		31C9EF36D5E561B4500076AF /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		D8A190201E6D76FCFD340ACF /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		71D2E56247FE75C3DCE9B609 = {
@@ -95,6 +95,7 @@
 				E63BC5D46CA00175CF51ACE9 /* GeocoderService.swift */,
 				0712DA5983C3011B96A994E7 /* LocationService.swift */,
 				DD164932A7F84C43E30EBCF6 /* OpenAIClient.swift */,
+				68774D4A5040493CAF354C8D /* LandmarkDiscoveryService.swift */,
 				F4456974E601FDED920F0A21 /* OverpassService.swift */,
 				871C6C0804A84E52D8A1E5CA /* SettingsStore.swift */,
 				6D41048D2B2628DBE03ADF89 /* TourCache.swift */,
@@ -107,10 +108,9 @@
 			isa = PBXGroup;
 			children = (
 				54DB3D7B9CD353B113BA9AB1 /* BuildingHistoryView.swift */,
-				7BA6D9912AB02D5B16E678F1 /* GameWorldView.swift */,
+				E87300D5E5CF25B6AE67FBEA /* LandmarkMapView.swift */,
 				B621DE77DFF7D78CB32826C7 /* MapPickerView.swift */,
 				E88EEFD85283152A18EA5FDA /* OnboardingView.swift */,
-				B0D61011FD3CF297467A6EFE /* QuestSceneView.swift */,
 				31C9EF36D5E561B4500076AF /* RootView.swift */,
 				D8A190201E6D76FCFD340ACF /* SettingsView.swift */,
 			);
@@ -129,16 +129,16 @@
 				768EF4E0F8DE94D51182D7EF /* GeocoderService.swift in Sources */,
 				0AA36FB6E684938ED0668278 /* LocationService.swift in Sources */,
 				33DBD439E201A8CC28EEEA61 /* OpenAIClient.swift in Sources */,
+				3525B11ED0C311FA1A2C7607 /* LandmarkDiscoveryService.swift in Sources */,
 				B54FAE7B55018103132A3D4C /* OverpassService.swift in Sources */,
 				A732919228173A6F07C3EBE2 /* SettingsStore.swift in Sources */,
 				596AE45DF05B856AFA0A5D70 /* TourCache.swift in Sources */,
 				55A811792DEBE5FE55886521 /* TourPipeline.swift in Sources */,
 				838086257F85A3779D3875E5 /* Theme.swift in Sources */,
 				0A50C4A70DD85493514A07EB /* BuildingHistoryView.swift in Sources */,
-				28EA13A8F3016B146AAE5F43 /* GameWorldView.swift in Sources */,
+				28148BB7BE04DA33339D2E41 /* LandmarkMapView.swift in Sources */,
 				BAC5FBD7912E2D90A74955BF /* MapPickerView.swift in Sources */,
 				0DEA314B9C473E3C428CECA3 /* OnboardingView.swift in Sources */,
-				B88F966C404536321ED3EAFE /* QuestSceneView.swift in Sources */,
 				162D836C7C50E6AD190F4643 /* RootView.swift in Sources */,
 				0366047E1EAD5CC5EA2D8838 /* SettingsView.swift in Sources */,
 			);

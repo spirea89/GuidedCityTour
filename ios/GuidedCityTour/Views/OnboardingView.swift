@@ -46,7 +46,7 @@ struct OnboardingView: View {
     private var welcomePage: some View {
         page(
             title: "Walk a living map",
-            bodyText: "City Quest turns the buildings around you into a stylized game district. Tap a block to hear its real, sourced history — the same grounded tour pipeline as Guided City Tour."
+            bodyText: "City Quest finds the most important buildings and monuments around you, pins them on the map, and tells their sourced history when you tap a pin."
         )
     }
 
@@ -54,7 +54,7 @@ struct OnboardingView: View {
         VStack(spacing: 18) {
             page(
                 title: "Use your location",
-                bodyText: "We’ll center the map on you. You can always pan and choose a different neighbourhood to gamify."
+                bodyText: "We’ll center the map on you. You can always pan and choose a different neighbourhood to explore."
             )
             Button("Allow location") {
                 location.requestWhenInUse()
