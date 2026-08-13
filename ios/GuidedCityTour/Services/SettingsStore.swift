@@ -17,6 +17,10 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(kidsMode, forKey: Self.kidsKey) }
     }
 
+    var ttsVoice: String {
+        didSet { UserDefaults.standard.set(ttsVoice, forKey: Self.ttsVoiceKey) }
+    }
+
     var hasCompletedOnboarding: Bool {
         didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: Self.onboardKey) }
     }
@@ -25,10 +29,13 @@ final class SettingsStore {
 
     static let qualityModel = "gpt-4o"
     static let economyModel = "gpt-4o-mini"
+    static let ttsVoices = ["nova", "shimmer", "coral"]
+    static let defaultTtsVoice = "nova"
 
     private static let keyAccount = "openai-api-key"
     private static let modelKey = "gct_ios_model"
     private static let kidsKey = "gct_ios_kids"
+    private static let ttsVoiceKey = "gct_ios_tts_voice"
     private static let onboardKey = "gct_ios_onboarded"
 
     init() {
@@ -36,6 +43,8 @@ final class SettingsStore {
         let storedModel = UserDefaults.standard.string(forKey: Self.modelKey) ?? Self.qualityModel
         model = storedModel == Self.economyModel ? Self.economyModel : Self.qualityModel
         kidsMode = UserDefaults.standard.bool(forKey: Self.kidsKey)
+        let storedVoice = (UserDefaults.standard.string(forKey: Self.ttsVoiceKey) ?? Self.defaultTtsVoice).lowercased()
+        ttsVoice = Self.ttsVoices.contains(storedVoice) ? storedVoice : Self.defaultTtsVoice
         hasCompletedOnboarding = UserDefaults.standard.bool(forKey: Self.onboardKey)
     }
 }

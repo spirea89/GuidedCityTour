@@ -17,6 +17,11 @@ struct SettingsView: View {
                         Text("Quality (gpt-4o)").tag(SettingsStore.qualityModel)
                         Text("Economy (gpt-4o-mini)").tag(SettingsStore.economyModel)
                     }
+                    Picker("Listen voice", selection: $settings.ttsVoice) {
+                        Text("Nova (calm guide)").tag("nova")
+                        Text("Shimmer (softer)").tag("shimmer")
+                        Text("Coral (warm)").tag("coral")
+                    }
                     Toggle("Kids mode", isOn: $settings.kidsMode)
                     Button("Save key") {
                         settings.apiKey = keyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -27,7 +32,7 @@ struct SettingsView: View {
                             settings.apiKey = ""
                         }
                     }
-                    Text("The key stays in the Keychain on this device and is sent only to OpenAI when you find notable places or start a story.")
+                    Text("The key stays in the Keychain on this device and is sent only to OpenAI when you find places, research history, or Listen with a natural voice.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

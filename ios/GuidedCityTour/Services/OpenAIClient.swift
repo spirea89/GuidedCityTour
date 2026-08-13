@@ -44,6 +44,56 @@ struct OpenAIClient {
         }
     }
 
+    /// OpenAI Text-to-Speech → mp3 data for museum-style Listen narration.
+    func createSpeech(
+        input: String,
+        voice: String = "nova",
+        speed: Double = 0.92,
+        model: String = "gpt-4o-mini-tts",
+        instructions: String? = nil
+    ) async -> Result<Data, Error> {
+        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !apiKey.isEmpty else { return .failure(OpenAIError.http(401, "Missing API key")) }
+        guard !text.isEmpty else { return .failure(OpenAIError.empty) }
+        guard let url = URL(string: baseURL + "/audio/speech") else {
+            return .failure(OpenAIError.badURL)
+        }
+
+        var body: [String: Any] = [
+            "model": model,
+            "input": text,
+            "voice": voice,
+            "speed": speed,
+            "response_format": "mp3"
+        ]
+        if let instructions, model.contains("gpt-4o") {
+            body["instructions"] = instructions
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("audio/mpeg, application/octet-stream, application/json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 90
+
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+            if !(200..<300).contains(code) {
+                let json = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+                let msg = ((json["error"] as? [String: Any])?["message"] as? String)
+                    ?? "OpenAI TTS HTTP \(code)"
+                return .failure(OpenAIError.http(code, msg))
+            }
+            guard !data.isEmpty else { return .failure(OpenAIError.empty) }
+            return .success(data)
+        } catch {
+            return .failure(error)
+        }
+    }
+
     private func postJSON(
         path: String,
         body: [String: Any],

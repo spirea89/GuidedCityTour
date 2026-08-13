@@ -69,14 +69,16 @@ struct BuildingHistoryView: View {
                     speakStory()
                 } label: {
                     Label(
-                        narrator.isSpeaking ? "Playing…" : "Listen",
-                        systemImage: narrator.isSpeaking ? "speaker.wave.2.fill" : "play.fill"
+                        narrator.isPreparing ? "Preparing…" : (narrator.isSpeaking ? "Playing…" : "Listen"),
+                        systemImage: narrator.isPreparing
+                            ? "ellipsis.circle"
+                            : (narrator.isSpeaking ? "speaker.wave.2.fill" : "play.fill")
                     )
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(!hasSpeakableText || narrator.isSpeaking)
+                .disabled(!hasSpeakableText || narrator.isSpeaking || narrator.isPreparing)
 
                 Button {
                     narrator.togglePause()
@@ -98,9 +100,11 @@ struct BuildingHistoryView: View {
 
             Text(narrator.statusMessage)
                 .font(.caption)
-                .foregroundStyle(narrator.isSpeaking ? QuestTheme.accent : QuestTheme.muted)
+                .foregroundStyle((narrator.isSpeaking || narrator.isPreparing) ? QuestTheme.accent : QuestTheme.muted)
 
-            Text("Uses a calm iOS English voice (Samantha, Karen, Daniel, or Enhanced if installed) — museum audio-guide pacing.")
+            Text(settings.hasApiKey
+                 ? "Uses OpenAI voice (\(settings.ttsVoice)) for a natural museum guide. Falls back to on-device speech if needed."
+                 : "Add an OpenAI API key in Settings for a natural human-like museum voice.")
                 .font(.caption2)
                 .foregroundStyle(QuestTheme.muted)
         }
@@ -111,6 +115,9 @@ struct BuildingHistoryView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(QuestTheme.border, lineWidth: 1)
         )
+        .onAppear {
+            narrator.configure(apiKey: settings.apiKey, voice: settings.ttsVoice)
+        }
     }
 
     @ViewBuilder
@@ -241,6 +248,7 @@ struct BuildingHistoryView: View {
             narrator.statusMessage = "No narration text is available for this place yet."
             return
         }
+        narrator.configure(apiKey: settings.apiKey, voice: settings.ttsVoice)
         narrator.speak(text)
     }
 }
