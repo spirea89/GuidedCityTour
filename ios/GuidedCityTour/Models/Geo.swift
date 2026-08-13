@@ -33,31 +33,6 @@ enum Geo {
         let z = (origin.latitude - lat) * metersPerDegreeLat
         return SIMD2(Float(x), Float(z))
     }
-
-    static func centroid(_ coords: [CLLocationCoordinate2D]) -> CLLocationCoordinate2D {
-        guard !coords.isEmpty else {
-            return CLLocationCoordinate2D(latitude: 0, longitude: 0)
-        }
-        let lat = coords.map(\.latitude).reduce(0, +) / Double(coords.count)
-        let lng = coords.map(\.longitude).reduce(0, +) / Double(coords.count)
-        return CLLocationCoordinate2D(latitude: lat, longitude: lng)
-    }
-
-    static func boundingSpan(_ coords: [CLLocationCoordinate2D]) -> (width: Double, depth: Double) {
-        guard let first = coords.first else { return (8, 8) }
-        var minLat = first.latitude, maxLat = first.latitude
-        var minLng = first.longitude, maxLng = first.longitude
-        for c in coords.dropFirst() {
-            minLat = min(minLat, c.latitude)
-            maxLat = max(maxLat, c.latitude)
-            minLng = min(minLng, c.longitude)
-            maxLng = max(maxLng, c.longitude)
-        }
-        let origin = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLng + maxLng) / 2)
-        let width = abs(maxLng - minLng) * metersPerDegreeLng(latitude: origin.latitude)
-        let depth = abs(maxLat - minLat) * metersPerDegreeLat
-        return (max(4, width), max(4, depth))
-    }
 }
 
 enum CoordEqual {

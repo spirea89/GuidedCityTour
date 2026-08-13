@@ -7,16 +7,18 @@ import Observation
 final class LocationService: NSObject {
     var authorization: CLAuthorizationStatus = .notDetermined
     var coordinate: CLLocationCoordinate2D?
-    var heading: CLLocationDirection?
     var lastError: String?
     var isLocating = false
 
     private let manager = CLLocationManager()
+    private let moveThresholdMeters: CLLocationDistance = 18
 
     override init() {
         super.init()
         manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyBest
+        manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+        manager.distanceFilter = moveThresholdMeters
+        manager.pausesLocationUpdatesAutomatically = true
         authorization = manager.authorizationStatus
     }
 
@@ -28,14 +30,10 @@ final class LocationService: NSObject {
         isLocating = true
         lastError = nil
         manager.startUpdatingLocation()
-        if CLLocationManager.headingAvailable() {
-            manager.startUpdatingHeading()
-        }
     }
 
     func stop() {
         manager.stopUpdatingLocation()
-        manager.stopUpdatingHeading()
         isLocating = false
     }
 
@@ -62,17 +60,20 @@ extension LocationService: CLLocationManagerDelegate {
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let loc = locations.last else { return }
+        if let current = coordinate {
+            let previous = CLLocation(latitude: current.latitude, longitude: current.longitude)
+            if loc.distance(from: previous) < moveThresholdMeters {
+                if isLocating { isLocating = false }
+                return
+            }
+        }
         coordinate = loc.coordinate
-        isLocating = false
-        lastError = nil
+        if isLocating { isLocating = false }
+        if lastError != nil { lastError = nil }
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         isLocating = false
         lastError = error.localizedDescription
-    }
-
-    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
-        heading = newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading
     }
 }

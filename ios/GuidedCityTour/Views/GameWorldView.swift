@@ -3,7 +3,6 @@ import CoreLocation
 
 struct GameWorldView: View {
     @Environment(AppModel.self) private var app
-    @Environment(LocationService.self) private var location
 
     @State private var showHistory = false
     @State private var showSettings = false
@@ -16,7 +15,7 @@ struct GameWorldView: View {
                 QuestSceneView(
                     buildings: app.buildings,
                     origin: selection.center,
-                    userLocation: location.coordinate,
+                    userLocation: app.questUserCoordinate,
                     selectedId: app.selectedBuilding?.id,
                     onSelect: { building in
                         app.selectedBuilding = building
@@ -124,7 +123,7 @@ struct GameWorldView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("\(app.buildings.count) sketched buildings")
                 .font(.headline)
-            Text("\(app.landmarks.count) named landmarks · tap a block to learn its history. Drag to orbit, pinch to zoom.")
+            Text("\(app.landmarks.count) named landmarks · tap a block for its name and history. Drag to orbit, pinch to zoom.")
                 .font(.footnote)
                 .foregroundStyle(QuestTheme.muted)
         }

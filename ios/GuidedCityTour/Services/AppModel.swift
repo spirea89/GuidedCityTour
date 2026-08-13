@@ -23,9 +23,10 @@ final class AppModel {
 
     let defaultCenter = CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522)
     var pickerCenter = CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522)
-    var pickerRadius: Double = 180
+    var pickerRadius: Double = 140
     var pickerLabel = "Selected area"
     var didAutoCenterOnUser = false
+    var questUserCoordinate: CLLocationCoordinate2D?
 
     var namedBuildings: [GameBuilding] {
         buildings.filter(\.hasProperName)
@@ -44,6 +45,7 @@ final class AppModel {
         screen = .map
         selectedBuilding = nil
         buildings = []
+        questUserCoordinate = nil
         loadError = nil
         loadMessage = ""
     }

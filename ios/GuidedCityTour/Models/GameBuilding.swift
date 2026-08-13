@@ -52,7 +52,8 @@ struct GameBuilding: Identifiable, Hashable {
     let entityType: EntityType
     let coordinate: CLLocationCoordinate2D
     let heightMeters: Double
-    let footprint: [CLLocationCoordinate2D]
+    let widthMeters: Double
+    let depthMeters: Double
     let tags: [String: String]
     let isLandmark: Bool
     let typeLabel: String

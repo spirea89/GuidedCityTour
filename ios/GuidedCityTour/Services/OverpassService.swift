@@ -17,19 +17,28 @@ enum OverpassError: LocalizedError {
     }
 }
 
-struct OverpassService {
+struct OverpassService: Sendable {
     static let shared = OverpassService()
 
     private let endpoints = [
-        "https://overpass-api.de/api/interpreter",
         "https://overpass.kumi.systems/api/interpreter",
+        "https://overpass-api.de/api/interpreter",
         "https://overpass.private.coffee/api/interpreter"
     ]
 
     private let userAgent = "GuidedCityTour-iOS/3.0 (https://github.com/spirea89/GuidedCityTour)"
-    private let maxBuildings = 90
+    private let maxBuildings = 48
 
     func fetchWorld(
+        center: CLLocationCoordinate2D,
+        radius: Double
+    ) async throws -> [GameBuilding] {
+        try await Task.detached(priority: .userInitiated) { [self] in
+            try await self.fetchAndNormalize(center: center, radius: radius)
+        }.value
+    }
+
+    private func fetchAndNormalize(
         center: CLLocationCoordinate2D,
         radius: Double
     ) async throws -> [GameBuilding] {
@@ -61,7 +70,7 @@ struct OverpassService {
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 28
+        request.timeoutInterval = 16
 
         let (data, response) = try await URLSession.shared.data(for: request)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
@@ -85,25 +94,16 @@ struct OverpassService {
 
         for el in elements {
             let tags = el.tags ?? [:]
-            let footprint = el.footprint
-            let coord: CLLocationCoordinate2D
-            if let c = el.centerCoordinate {
-                coord = c
-            } else if !footprint.isEmpty {
-                coord = Geo.centroid(footprint)
-            } else if let lat = el.lat, let lon = el.lon {
-                coord = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-            } else {
-                continue
-            }
+            guard let coord = el.centerCoordinate else { continue }
 
             let dist = Geo.haversineMeters(center, coord)
             if dist > radius + 8 { continue }
 
             let entity = EntityTyping.infer(from: tags)
-            let isLM = EntityTyping.isLandmarkTags(tags) || entity != .building && entity != .unknown && entity != .place
             let rawName = (tags["name"] ?? tags["name:en"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let isLM = EntityTyping.isLandmarkTags(tags) && rawName.count >= 2
             let id = "\(el.type ?? "way")/\(el.id ?? 0)"
+            let size = Self.sketchSize(id: id, entity: entity, isLandmark: isLM)
 
             let building = GameBuilding(
                 id: id,
@@ -111,9 +111,10 @@ struct OverpassService {
                 entityType: entity == .unknown ? .building : entity,
                 coordinate: coord,
                 heightMeters: BuildingHeight.estimate(tags: tags, entityType: entity),
-                footprint: footprint,
+                widthMeters: size.width,
+                depthMeters: size.depth,
                 tags: tags,
-                isLandmark: isLM && rawName.count >= 2,
+                isLandmark: isLM,
                 typeLabel: EntityTyping.typeLabel(from: tags),
                 osmId: el.id,
                 osmType: el.type
@@ -131,16 +132,14 @@ struct OverpassService {
         let all = Array(byId.values)
         let named = all.filter(\.hasProperName).sorted {
             if $0.isLandmark != $1.isLandmark { return $0.isLandmark && !$1.isLandmark }
-            let d0 = Geo.haversineMeters(center, $0.coordinate)
-            let d1 = Geo.haversineMeters(center, $1.coordinate)
-            return d0 < d1
+            return Geo.haversineMeters(center, $0.coordinate) < Geo.haversineMeters(center, $1.coordinate)
         }
         let unnamed = all.filter { !$0.hasProperName }.sorted {
             Geo.haversineMeters(center, $0.coordinate) < Geo.haversineMeters(center, $1.coordinate)
         }
 
         var picked: [GameBuilding] = []
-        picked.append(contentsOf: named.prefix(40))
+        picked.append(contentsOf: named.prefix(18))
         let remaining = maxBuildings - picked.count
         if remaining > 0 {
             picked.append(contentsOf: unnamed.prefix(remaining))
@@ -148,20 +147,31 @@ struct OverpassService {
         return picked
     }
 
+    private static func sketchSize(id: String, entity: EntityType, isLandmark: Bool) -> (width: Double, depth: Double) {
+        switch entity {
+        case .church: return (14, 12)
+        case .castle: return (18, 16)
+        case .museum, .landmark: return (15, 12)
+        case .statue: return (5, 5)
+        default:
+            let hash = abs(id.hashValue)
+            let extra: Double = isLandmark ? 4 : 0
+            return (7 + extra + Double(hash % 8), 6 + extra + Double((hash >> 5) % 8))
+        }
+    }
+
+    /// Centers + tags only (no full way geometry) so the payload stays small.
     private static func buildQuery(lat: Double, lng: Double, radius: Double) -> String {
-        let r = Int(min(max(radius, 60), 420).rounded())
+        let r = Int(min(max(radius, 60), 280).rounded())
         return """
-        [out:json][timeout:25];
+        [out:json][timeout:12];
         (
           way["building"](around:\(r),\(lat),\(lng));
           nwr["name"]["tourism"](around:\(r),\(lat),\(lng));
           nwr["name"]["historic"](around:\(r),\(lat),\(lng));
           nwr["name"]["amenity"~"^(theatre|place_of_worship|museum|arts_centre)$"](around:\(r),\(lat),\(lng));
-          nwr["name"]["leisure"~"^(stadium|sports_centre|park|garden)$"](around:\(r),\(lat),\(lng));
-          nwr["name"]["building"~"^(church|cathedral|chapel|castle|mosque|synagogue|temple|stadium)$"](around:\(r),\(lat),\(lng));
-          nwr["name"]["man_made"~"^(monument|statue|tower)$"](around:\(r),\(lat),\(lng));
         );
-        out body geom tags center;
+        out center tags 70;
         """
     }
 }
@@ -177,27 +187,15 @@ private struct OverpassElement: Decodable {
     let lon: Double?
     let tags: [String: String]?
     let center: OverpassCenter?
-    let geometry: [OverpassPoint]?
 
     var centerCoordinate: CLLocationCoordinate2D? {
         if let c = center { return CLLocationCoordinate2D(latitude: c.lat, longitude: c.lon) }
         if let lat, let lon { return CLLocationCoordinate2D(latitude: lat, longitude: lon) }
         return nil
     }
-
-    var footprint: [CLLocationCoordinate2D] {
-        (geometry ?? []).compactMap {
-            CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon)
-        }
-    }
 }
 
 private struct OverpassCenter: Decodable {
-    let lat: Double
-    let lon: Double
-}
-
-private struct OverpassPoint: Decodable {
     let lat: Double
     let lon: Double
 }

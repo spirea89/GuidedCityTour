@@ -21,7 +21,7 @@ struct MapPickerView: View {
                         .foregroundStyle(QuestTheme.accent.opacity(0.18))
                         .stroke(QuestTheme.accent.opacity(0.85), lineWidth: 2)
                 }
-                .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .all))
+                .mapStyle(.standard(elevation: .flat))
                 .onMapCameraChange(frequency: .onEnd) { context in
                     app.pickerCenter = context.camera.centerCoordinate
                 }
@@ -66,11 +66,6 @@ struct MapPickerView: View {
             .task {
                 recenterCamera(app.pickerCenter)
             }
-            .onChange(of: location.coordinate?.latitude) { _, _ in
-                if let coord = location.coordinate, app.pickerLabel == "Your location" {
-                    recenterCamera(coord)
-                }
-            }
         }
     }
 
@@ -111,7 +106,7 @@ struct MapPickerView: View {
             HStack {
                 Text("Radius \(Int(app.pickerRadius)) m")
                     .font(.subheadline)
-                Slider(value: $app.pickerRadius, in: 80...350, step: 10)
+                Slider(value: $app.pickerRadius, in: 80...250, step: 10)
             }
 
             if let err = app.searchError {
@@ -207,6 +202,7 @@ struct MapPickerView: View {
             let buildings = try await OverpassService.shared.fetchWorld(center: center, radius: radius)
             app.buildings = buildings
             app.selection = MapSelection(center: center, radiusMeters: radius, label: label)
+            app.questUserCoordinate = location.coordinate
             app.selectedBuilding = nil
             app.screen = .quest
         } catch {
