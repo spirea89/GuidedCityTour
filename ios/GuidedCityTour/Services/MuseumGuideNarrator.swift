@@ -23,16 +23,6 @@ final class MuseumGuideNarrator: NSObject {
         super.init()
         synthesizer.delegate = self
         refreshVoices()
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(voicesDidChange),
-            name: AVSpeechSynthesisVoice.speechVoicesDidChangeNotification,
-            object: nil
-        )
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
     }
 
     var isSpeaking: Bool { state == .speaking }
@@ -94,10 +84,6 @@ final class MuseumGuideNarrator: NSObject {
         }
     }
 
-    @objc private func voicesDidChange() {
-        refreshVoices()
-    }
-
     private func refreshVoices() {
         let voices = AVSpeechSynthesisVoice.speechVoices()
         preferredVoice = Self.pickMuseumVoice(from: voices)
@@ -150,13 +136,7 @@ final class MuseumGuideNarrator: NSObject {
             if name.contains("enhanced") || name.contains("premium") || name.contains("quality") {
                 score += 25
             }
-            if #available(iOS 16.0, *) {
-                switch voice.quality {
-                case .premium: score += 28
-                case .enhanced: score += 20
-                default: break
-                }
-            } else if voice.quality == .enhanced {
+            if voice.quality == .enhanced {
                 score += 20
             }
 
