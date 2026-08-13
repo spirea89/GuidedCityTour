@@ -211,9 +211,9 @@ final class QuestSceneController: NSObject {
         }
     }
 
-    private var makeLine(from: SCNVector3, to: SCNVector3, color: UIColor) -> SCNNode {
+    private func makeLine(from: SCNVector3, to: SCNVector3, color: UIColor) -> SCNNode {
         let vertices: [SCNVector3] = [from, to]
-        let vertexData = Data(bytes: vertices, count: MemoryLayout<SCNVector3>.size * 2)
+        let vertexData = vertices.withUnsafeBufferPointer { Data(buffer: $0) }
         let source = SCNGeometrySource(
             data: vertexData,
             semantic: .vertex,
