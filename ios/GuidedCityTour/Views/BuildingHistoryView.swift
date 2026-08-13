@@ -1,5 +1,4 @@
 import SwiftUI
-import AVFoundation
 
 struct BuildingHistoryView: View {
     @Environment(SettingsStore.self) private var settings
@@ -9,9 +8,8 @@ struct BuildingHistoryView: View {
     @State private var result: TourResult?
     @State private var isLoading = false
     @State private var errorText: String?
+    @State private var narrator = MuseumGuideNarrator()
     @Environment(\.dismiss) private var dismiss
-
-    private let synthesizer = AVSpeechSynthesizer()
 
     var body: some View {
         NavigationStack {
@@ -29,6 +27,7 @@ struct BuildingHistoryView: View {
                             .font(.footnote)
                     }
                     if let result {
+                        listenControls
                         resultBody(result)
                     }
                 }
@@ -39,15 +38,14 @@ struct BuildingHistoryView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Listen") { speak() }
-                        .disabled(result?.speakText.isEmpty != false)
+                    Button("Close") {
+                        narrator.stop()
+                        dismiss()
+                    }
                 }
             }
             .task { await load() }
-            .onDisappear { synthesizer.stopSpeaking(at: .immediate) }
+            .onDisappear { narrator.stop() }
         }
     }
 
@@ -58,10 +56,61 @@ struct BuildingHistoryView: View {
             Text(building.entityType.displayLabel + " · " + building.typeLabel)
                 .font(.subheadline)
                 .foregroundStyle(QuestTheme.accent)
-            Text("A sketch of the place on the map. History still uses the grounded research pipeline — verified claims only.")
+            Text("History uses the grounded research pipeline — verified claims only.")
                 .font(.caption)
                 .foregroundStyle(QuestTheme.muted)
         }
+    }
+
+    private var listenControls: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Button {
+                    speakStory()
+                } label: {
+                    Label(
+                        narrator.isSpeaking ? "Playing…" : "Listen",
+                        systemImage: narrator.isSpeaking ? "speaker.wave.2.fill" : "play.fill"
+                    )
+                    .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!hasSpeakableText || narrator.isSpeaking)
+
+                Button {
+                    narrator.togglePause()
+                } label: {
+                    Text(narrator.isPaused ? "Resume" : "Pause")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!narrator.canPause)
+
+                Button {
+                    narrator.stop()
+                } label: {
+                    Text("Stop")
+                }
+                .buttonStyle(.bordered)
+                .disabled(narrator.state == .idle)
+            }
+
+            Text(narrator.statusMessage)
+                .font(.caption)
+                .foregroundStyle(narrator.isSpeaking ? QuestTheme.accent : QuestTheme.muted)
+
+            Text("Uses a calm iOS English voice (Samantha, Karen, Daniel, or Enhanced if installed) — museum audio-guide pacing.")
+                .font(.caption2)
+                .foregroundStyle(QuestTheme.muted)
+        }
+        .padding(12)
+        .background(QuestTheme.bgPanel)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(QuestTheme.border, lineWidth: 1)
+        )
     }
 
     @ViewBuilder
@@ -80,9 +129,7 @@ struct BuildingHistoryView: View {
                 .foregroundStyle(QuestTheme.error)
         }
 
-        let text = settings.kidsMode && !result.narration.kids.isEmpty
-            ? result.narration.kids
-            : result.narration.adult
+        let text = displayText(for: result)
         if !text.isEmpty {
             Text(text)
                 .font(.body)
@@ -135,9 +182,38 @@ struct BuildingHistoryView: View {
         }
     }
 
+    private var hasSpeakableText: Bool {
+        guard let result else { return false }
+        return !speakableText(for: result).isEmpty
+    }
+
+    private func displayText(for result: TourResult) -> String {
+        if settings.kidsMode, !result.narration.kids.isEmpty {
+            return result.narration.kids
+        }
+        if !result.narration.adult.isEmpty {
+            return result.narration.adult
+        }
+        return speakableText(for: result)
+    }
+
+    private func speakableText(for result: TourResult) -> String {
+        if settings.kidsMode, !result.narration.kids.isEmpty {
+            return result.narration.kids
+        }
+        if !result.narration.adult.isEmpty {
+            return result.narration.adult
+        }
+        let ordered = ["history", "architecture", "famous_people", "interesting_facts", "today"]
+        return ordered
+            .compactMap { result.narration.sections[$0] }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+    }
+
     private func load() async {
         guard settings.hasApiKey else {
-            errorText = "Add an OpenAI API key in Settings to research this building. Identity still comes from OpenStreetMap."
+            errorText = "Add an OpenAI API key in Settings to research this building."
             return
         }
         isLoading = true
@@ -155,13 +231,16 @@ struct BuildingHistoryView: View {
         }
     }
 
-    private func speak() {
-        synthesizer.stopSpeaking(at: .immediate)
-        guard let text = result?.speakText, !text.isEmpty else { return }
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-        utterance.rate = 0.45
-        utterance.pitchMultiplier = 0.95
-        synthesizer.speak(utterance)
+    private func speakStory() {
+        guard let result else {
+            narrator.statusMessage = "Wait for the story to finish loading."
+            return
+        }
+        let text = speakableText(for: result)
+        guard !text.isEmpty else {
+            narrator.statusMessage = "No narration text is available for this place yet."
+            return
+        }
+        narrator.speak(text)
     }
 }
