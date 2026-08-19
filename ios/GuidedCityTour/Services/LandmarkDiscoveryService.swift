@@ -203,7 +203,7 @@ struct LandmarkDiscoveryService {
             """
         }.joined(separator: "\n")
 
-        """
+        return """
         Map area to research:
         - Label: \(areaLabel.isEmpty ? "Unknown neighbourhood" : areaLabel)
         - Center: \(center.latitude), \(center.longitude)
