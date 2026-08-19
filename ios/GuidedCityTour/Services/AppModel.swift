@@ -21,6 +21,11 @@ final class AppModel {
     var searchError: String?
     var isSearching = false
 
+    /// Set when nearby cached buildings were loaded automatically on location fix.
+    var nearbyFromCache = false
+    /// Set while the background nearby-cache lookup is running.
+    var isLoadingNearby = false
+
     let defaultCenter = CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522)
     var pickerCenter = CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522)
     var pickerRadius: Double = 700
@@ -48,5 +53,30 @@ final class AppModel {
         questUserCoordinate = nil
         loadError = nil
         loadMessage = ""
+        nearbyFromCache = false
+    }
+
+    /// Silently load nearby cached pins. Transitions to .pins if results found.
+    func loadNearbyFromCache(coordinate: CLLocationCoordinate2D) async {
+        guard !isLoadingNearby, !isLoadingBuildings else { return }
+        isLoadingNearby = true
+        defer { isLoadingNearby = false }
+
+        guard let nearby = await SupabaseCacheService.fetchNearbyAreaPlaces(
+            near: coordinate,
+            radiusMeters: 1200
+        ), !nearby.isEmpty else { return }
+
+        guard screen == .map else { return }
+        buildings = nearby
+        selection = MapSelection(
+            center: coordinate,
+            radiusMeters: 1200,
+            label: "Nearby cached places"
+        )
+        questUserCoordinate = coordinate
+        selectedBuilding = nil
+        nearbyFromCache = true
+        screen = .pins
     }
 }

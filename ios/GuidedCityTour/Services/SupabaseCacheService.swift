@@ -124,6 +124,53 @@ enum SupabaseCacheService {
         return "gct:v\(AppIdentity.pipelineVersion):area:\(lat):\(lng):\(radiusM):\(slug):\(model)"
     }
 
+    /// Fetches all non-expired area_locations whose center is within `radiusMeters` of `coordinate`.
+    /// Returns a merged, deduplicated list of buildings from all matching rows.
+    static func fetchNearbyAreaPlaces(
+        near coordinate: CLLocationCoordinate2D,
+        radiusMeters: Double = 2000
+    ) async -> [GameBuilding]? {
+        guard isConfigured else { return nil }
+
+        // Rough bounding-box filter (degrees). 1° lat ≈ 111 320 m.
+        let deltaLat = radiusMeters / 111_320.0
+        let deltaLng = radiusMeters / (111_320.0 * max(cos(coordinate.latitude * .pi / 180), 0.001))
+        let minLat = roundCoord(coordinate.latitude - deltaLat)
+        let maxLat = roundCoord(coordinate.latitude + deltaLat)
+        let minLng = roundCoord(coordinate.longitude - deltaLng)
+        let maxLng = roundCoord(coordinate.longitude + deltaLng)
+
+        let query = "?select=center_lat,center_lng,area_label,radius_meters,places,expires_at" +
+            "&center_lat=gte.\(minLat)&center_lat=lte.\(maxLat)" +
+            "&center_lng=gte.\(minLng)&center_lng=lte.\(maxLng)" +
+            "&expires_at=gt.\(iso8601(Date()))" +
+            "&limit=12"
+
+        guard let rows = await restGET(table: SupabaseConfig.locationsTable, query: query),
+              !rows.isEmpty
+        else { return nil }
+
+        var buildings: [GameBuilding] = []
+        var seenIds = Set<String>()
+
+        for row in rows {
+            guard let placesAny = row["places"],
+                  let data = try? JSONSerialization.data(withJSONObject: placesAny),
+                  let cached = try? JSONDecoder().decode([CachedPlace].self, from: data)
+            else { continue }
+
+            for place in cached {
+                let coord = CLLocationCoordinate2D(latitude: place.lat, longitude: place.lng)
+                let dist = Geo.haversineMeters(coordinate, coord)
+                guard dist <= radiusMeters, !seenIds.contains(place.id) else { continue }
+                seenIds.insert(place.id)
+                buildings.append(place.toBuilding())
+            }
+        }
+
+        return buildings.isEmpty ? nil : buildings
+    }
+
     static func fetchAreaPlaces(cacheKey: String) async -> [GameBuilding]? {
         guard isConfigured else { return nil }
         let query =

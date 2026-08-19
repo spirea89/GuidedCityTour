@@ -89,6 +89,11 @@ struct LandmarkMapView: View {
 
     private var listCard: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if app.nearbyFromCache {
+                Label("Loaded from shared cache — no OpenAI credits used.", systemImage: "icloud.fill")
+                    .font(.caption2)
+                    .foregroundStyle(QuestTheme.accent)
+            }
             Text("\(app.buildings.count) notable places")
                 .font(.headline)
             Text("Tap a pin to hear its history. Only places with a verified story are shown here.")
