@@ -128,3 +128,18 @@ create policy "public_update_areas"
   to anon, authenticated
   using (true)
   with check (true);
+
+-- Allow clients to delete rows that have already expired
+drop policy if exists "public_delete_expired_stories" on public.place_research;
+create policy "public_delete_expired_stories"
+  on public.place_research
+  for delete
+  to anon, authenticated
+  using (expires_at < now());
+
+drop policy if exists "public_delete_expired_areas" on public.area_locations;
+create policy "public_delete_expired_areas"
+  on public.area_locations
+  for delete
+  to anon, authenticated
+  using (expires_at < now());

@@ -63,6 +63,20 @@ enum SupabaseCacheService {
         return decodeTourResult(payload)
     }
 
+    /// Expire a story that was cached with wrong/off-location content.
+    /// Sets expires_at to epoch so RLS hides it immediately on next read.
+    static func expireStory(cacheKey: String) async {
+        guard isConfigured else { return }
+        let query = "?cache_key=eq.\(encode(cacheKey))"
+        guard let url = URL(string: SupabaseConfig.projectURL + "/rest/v1/" + SupabaseConfig.storyTable + query)
+        else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["expires_at": "2000-01-01T00:00:00Z"])
+        applyHeaders(&request, prefer: "return=minimal")
+        _ = try? await URLSession.shared.data(for: request)
+    }
+
     static func saveStory(
         cacheKey: String,
         building: GameBuilding,

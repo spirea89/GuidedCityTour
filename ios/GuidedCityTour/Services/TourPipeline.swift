@@ -53,6 +53,10 @@ struct TourPipeline {
                     result: result,
                     kidsMode: kidsMode
                 )
+            } else if result.status == .noHistory {
+                // Expire any previously cached story for this key that may have
+                // passed a wrong-city source before the city-filter was in place.
+                await SupabaseCacheService.expireStory(cacheKey: cacheKey)
             }
             return result
         case .failure:
