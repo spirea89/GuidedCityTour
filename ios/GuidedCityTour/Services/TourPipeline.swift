@@ -305,21 +305,33 @@ struct TourPipeline {
         return trimmed
     }
 
-    /// Keeps a verified claim only when AT LEAST ONE of its sources explicitly
-    /// mentions the building's city/town. Claims with no location-matching source
-    /// are demoted to uncertain; the result becomes no_history when nothing remains.
+    /// Keeps a verified claim only when it appears to be about the correct
+    /// local place.
+    ///
+    /// We use a two-part heuristic (less strict than “city must be in the source”):
+    /// - Accept if ANY source mentions the building city/county/etc (aliases)
+    /// - OR accept if the claim text itself mentions those aliases
+    ///
+    /// This prevents the Moreni-vs-Roman failure mode (claim text and/or sources
+    /// mention the wrong city) while allowing more valid results where sources
+    /// might not explicitly include the city name in the title/url.
     private func enforceLocationIntegrity(_ result: TourResult, building: GameBuilding) -> TourResult {
         let cityAliases = cityAliasSet(building: building)
         guard !cityAliases.isEmpty else { return result }
 
-        func sourceContainsCity(_ source: ClaimSource) -> Bool {
+        func sourceMentionsCity(_ source: ClaimSource) -> Bool {
             let combined = normalize(source.title + " " + source.url + " " + source.publisher)
             return cityAliases.contains(where: { combined.contains($0) })
         }
 
-        // A claim passes if at least one of its sources mentions the city.
+        func claimMentionsCity(_ claim: FactClaim) -> Bool {
+            let text = normalize(claim.text)
+            return cityAliases.contains(where: { text.contains($0) })
+        }
+
+        // A claim passes if either sources or claim text mention expected city aliases.
         let stillVerified = result.claims.verified.filter { claim in
-            claim.sources.contains(where: { sourceContainsCity($0) })
+            claim.sources.contains(where: { sourceMentionsCity($0) }) || claimMentionsCity(claim)
         }
         let demoted = result.claims.verified.filter { claim in
             !stillVerified.contains(where: { $0.id == claim.id })
@@ -343,7 +355,7 @@ struct TourPipeline {
         )
 
         let filteredCitations = result.citations.filter { cite in
-            sourceContainsCity(cite)
+            sourceMentionsCity(cite)
         }
 
         if stillVerified.isEmpty {

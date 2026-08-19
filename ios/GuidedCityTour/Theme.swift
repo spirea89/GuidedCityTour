@@ -18,6 +18,6 @@ enum QuestTheme {
 enum AppIdentity {
     static let displayName = "City Quest"
     static let subtitle = "Guided City Tour"
-    static let version = "3.0.3"
-    static let pipelineVersion = "3.0.3"
+    static let version = "3.0.4"
+    static let pipelineVersion = "3.0.4"
 }
