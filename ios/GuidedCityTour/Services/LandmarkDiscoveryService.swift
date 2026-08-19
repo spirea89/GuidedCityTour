@@ -50,9 +50,15 @@ struct LandmarkDiscoveryService {
             center: center,
             radius: radius
         )) ?? []
+        guard !osmLandmarks.isEmpty else { throw LandmarkDiscoveryError.noPlaces }
 
         let client = OpenAIClient(apiKey: key, model: model)
-        let input = userPrompt(center: center, radius: radius, areaLabel: areaLabel)
+        let input = userPrompt(
+            center: center,
+            radius: radius,
+            areaLabel: areaLabel,
+            candidates: osmLandmarks
+        )
 
         let withSearch = await client.createResponse(
             instructions: Self.instructions,
@@ -88,27 +94,10 @@ struct LandmarkDiscoveryService {
             throw LandmarkDiscoveryError.noPlaces
         }
 
-        var pinned: [GameBuilding?] = Array(repeating: nil, count: drafts.count)
-
-        await withTaskGroup(of: (Int, GameBuilding?).self) { group in
-            for (index, draft) in drafts.enumerated() {
-                group.addTask {
-                    let building = await self.makeBuilding(
-                        draft: draft,
-                        osmLandmarks: osmLandmarks,
-                        center: center,
-                        radius: radius
-                    )
-                    return (index, building)
-                }
-            }
-            for await (index, building) in group {
-                pinned[index] = building
-            }
-        }
-
         var seen = Set<String>()
-        let unique = pinned.compactMap { $0 }.filter { building in
+        let unique = drafts.compactMap { draft in
+            makeBuilding(draft: draft, osmLandmarks: osmLandmarks)
+        }.filter { building in
             let key = PlaceNameMatching.normalize(building.displayName)
             if seen.contains(key) { return false }
             seen.insert(key)
@@ -136,19 +125,10 @@ struct LandmarkDiscoveryService {
 
     private func makeBuilding(
         draft: DraftPlace,
-        osmLandmarks: [GameBuilding],
-        center: CLLocationCoordinate2D,
-        radius: Double
-    ) async -> GameBuilding? {
-        if let osm = PlaceNameMatching.bestOSMMatch(
-            name: draft.name,
-            in: osmLandmarks,
-            center: center,
-            radius: radius
-        ) {
-            return building(from: osm, draft: draft, source: "osm")
-        }
-        return nil
+        osmLandmarks: [GameBuilding]
+    ) -> GameBuilding? {
+        guard let osm = osmLandmarks.first(where: { $0.id == draft.id }) else { return nil }
+        return building(from: osm, draft: draft, source: "osm")
     }
 
     private func building(
@@ -200,7 +180,29 @@ struct LandmarkDiscoveryService {
         return accepted
     }
 
-    private func userPrompt(center: CLLocationCoordinate2D, radius: Double, areaLabel: String) -> String {
+    private func userPrompt(
+        center: CLLocationCoordinate2D,
+        radius: Double,
+        areaLabel: String,
+        candidates: [GameBuilding]
+    ) -> String {
+        let candidateList = candidates.prefix(30).map { building in
+            let dist = Int(Geo.haversineMeters(center, building.coordinate).rounded())
+            let address = building.tags["addr:street"].map { street in
+                if let house = building.tags["addr:housenumber"], !house.isEmpty {
+                    return "\(street) \(house)"
+                }
+                return street
+            } ?? ""
+            return """
+            - id: \(building.id)
+              name: \(building.displayName)
+              type: \(building.typeLabel)
+              distance_m: \(dist)
+              address: \(address)
+            """
+        }.joined(separator: "\n")
+
         """
         Map area to research:
         - Label: \(areaLabel.isEmpty ? "Unknown neighbourhood" : areaLabel)
@@ -211,10 +213,13 @@ struct LandmarkDiscoveryService {
         Return FEWER places if there are not enough notable ones — do NOT pad the list to reach \(maxPins).
         Skip shops, apartments, and generic streets.
 
-        For each place include the real street address when you know it. Only include places that correspond to a real, named OpenStreetMap landmark/building inside the radius. Coordinates must be the actual building location, not the neighborhood center.
+        Choose only from the OpenStreetMap candidates below. Do not invent new names or ids. Return FEWER places if none are important enough.
+
+        OpenStreetMap candidates:
+        \(candidateList)
 
         JSON only:
-        {"places":[{"name":"","address":"","type":"church|museum|monument|palace|landmark|building","why_notable":"one sentence","lat":0,"lng":0}]}
+        {"places":[{"id":"","name":"","address":"","type":"church|museum|monument|palace|landmark|building","why_notable":"one sentence"}]}
         """
     }
 
@@ -223,17 +228,17 @@ struct LandmarkDiscoveryService {
     Use web search when available. Prefer official / well-known heritage sites.
     Do not invent obscure buildings. Names must be real places in that neighbourhood.
     Every place must fall within the requested radius from the center point.
-    Include street addresses when known. Only return places likely to exist as named OpenStreetMap features. Coordinates must pinpoint the building, not a nearby street or district centroid.
+    Only choose places from the provided OpenStreetMap candidate list. Never invent a new place name or id.
+    Include street addresses when known.
     Return fewer items rather than guessing locations. Output a single JSON object. No markdown.
     """
 
     private struct DraftPlace {
+        var id: String
         var name: String
         var address: String
         var type: String
         var whyNotable: String
-        var lat: Double?
-        var lng: Double?
     }
 
     private static func parsePlaces(_ raw: String) -> [DraftPlace] {
@@ -244,15 +249,15 @@ struct LandmarkDiscoveryService {
         else { return [] }
 
         return arr.compactMap { item in
+            let id = (item["id"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             let name = (item["name"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            guard name.count >= 2 else { return nil }
+            guard id.count >= 2, name.count >= 2 else { return nil }
             return DraftPlace(
+                id: id,
                 name: name,
                 address: (item["address"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
                 type: (item["type"] as? String ?? "landmark").lowercased(),
-                whyNotable: (item["why_notable"] as? String ?? item["whyNotable"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
-                lat: item["lat"] as? Double,
-                lng: (item["lng"] as? Double) ?? (item["lon"] as? Double)
+                whyNotable: (item["why_notable"] as? String ?? item["whyNotable"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             )
         }.prefix(10).map { $0 }
     }
