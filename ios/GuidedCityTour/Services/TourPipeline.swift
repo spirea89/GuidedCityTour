@@ -14,8 +14,15 @@ struct TourPipeline {
         let place = identify(building: building, nearby: nearby)
         let cacheKey = TourCache.key(building: building, kids: kidsMode, model: model)
 
-        if !skipCache, var hit = TourCache.get(cacheKey) {
+        if !skipCache, var hit = TourCache.getLocal(cacheKey) {
             hit.cached = true
+            return hit
+        }
+
+        if !skipCache, let remote = await SupabaseCacheService.fetchStory(cacheKey: cacheKey) {
+            var hit = remote
+            hit.cached = true
+            TourCache.set(cacheKey, hit)
             return hit
         }
 
@@ -38,6 +45,12 @@ struct TourPipeline {
             var result = parse(text, fallbackPlace: place, researchAvailable: true)
             if result.status == .ok && !result.claims.verified.isEmpty {
                 TourCache.set(cacheKey, result)
+                await SupabaseCacheService.saveStory(
+                    cacheKey: cacheKey,
+                    building: building,
+                    result: result,
+                    kidsMode: kidsMode
+                )
             }
             return result
         case .failure:

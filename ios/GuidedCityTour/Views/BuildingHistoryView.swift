@@ -123,7 +123,7 @@ struct BuildingHistoryView: View {
     @ViewBuilder
     private func resultBody(_ result: TourResult) -> some View {
         if result.cached {
-            Text("Cached tour")
+            Text("Cached tour (shared or on device)")
                 .font(.caption2)
                 .foregroundStyle(QuestTheme.muted)
         }

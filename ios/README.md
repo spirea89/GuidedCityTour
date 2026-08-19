@@ -19,6 +19,15 @@ Requires **Xcode 15.4+** (iOS 17 SDK) on a Mac.
 
 An OpenAI API key is required to rank notable buildings and to generate stories. It is stored in the Keychain.
 
+### Shared story cache (Supabase)
+
+Stories and map pins are saved to Supabase project **`ifoybmzofjdgekvvrsot`** so repeat visits skip OpenAI.
+
+1. Run the SQL in [`../supabase/migrations/`](../supabase/migrations/) once (Supabase SQL Editor).
+2. In the app: **Settings → Shared story cache** → paste the **anon public** key from Supabase → Settings → API.
+
+Without the anon key the app still works with on-device cache only.
+
 ### Simulator location
 
 **Features → Location → Custom Location** (or a city preset).
@@ -31,6 +40,6 @@ An OpenAI API key is required to rank notable buildings and to generate stories.
 | `GeocoderService` (Photon) | `Geocoder.js` |
 | `TourPipeline` | `TourPipeline.js` |
 | `OpenAIClient` | `OpenAIService.js` |
-| `TourCache` | IndexedDB cache |
+| `TourCache` + `SupabaseCacheService` | IndexedDB + Supabase `place_research` / `area_locations` |
 
 History still requires sources. The pin list is a short, curated set — not every OSM building.

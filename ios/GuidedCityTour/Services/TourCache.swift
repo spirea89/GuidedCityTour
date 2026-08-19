@@ -8,15 +8,34 @@ enum TourCache {
         return dir
     }
 
+    /// Shared cache key (matches web `buildCacheKey` in js/services/CacheService.js).
     static func key(building: GameBuilding, kids: Bool, model: String) -> String {
-        let name = building.displayName.lowercased()
+        let lat = String(format: "%.5f", building.coordinate.latitude)
+        let lng = String(format: "%.5f", building.coordinate.longitude)
+        let nameSlug = building.displayName.lowercased()
             .replacingOccurrences(of: "[^a-z0-9]+", with: "-", options: .regularExpression)
-        let lat = String(format: "%.4f", building.coordinate.latitude)
-        let lng = String(format: "%.4f", building.coordinate.longitude)
-        return "\(AppIdentity.pipelineVersion)_\(lat)_\(lng)_\(name)_\(kids ? "k" : "a")_\(model)"
+            .prefix(48)
+        let kidsFlag = kids ? "1" : "0"
+        let cats = "architecture,famous_people,history,interesting_facts,today"
+        let focus = building.isLandmark ? "landmark" : "house"
+        let version = AppIdentity.pipelineVersion
+
+        if let osmId = building.osmId {
+            let placeId = "\(building.osmType ?? "way")/\(osmId)"
+            return "gct:v\(version):id:\(placeId):\(focus):\(cats):\(kidsFlag)"
+        }
+        if !nameSlug.isEmpty {
+            return "gct:v\(version):\(lat):\(lng):\(nameSlug):\(focus):\(cats):\(kidsFlag)"
+        }
+        return "gct:v\(version):\(lat):\(lng):\(focus):\(cats):\(kidsFlag)"
     }
 
     static func get(_ key: String) -> TourResult? {
+        if let local = getLocal(key) { return local }
+        return nil
+    }
+
+    static func getLocal(_ key: String) -> TourResult? {
         let url = directory.appendingPathComponent(safe(key))
         guard let data = try? Data(contentsOf: url) else { return nil }
         guard let result = try? JSONDecoder().decode(TourResult.self, from: data) else { return nil }

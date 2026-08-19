@@ -130,8 +130,8 @@ export const API = {
  * @see docs/ai/supabase-cache.md
  */
 export const SUPABASE = {
-  url: "", // e.g. https://xxxx.supabase.co
-  anonKey: "",
+  url: "https://ifoybmzofjdgekvvrsot.supabase.co",
+  anonKey: "", // set at runtime — Project Settings → API → anon public
 };
 
 export const WEB_SEARCH_UNAVAILABLE_HINT =

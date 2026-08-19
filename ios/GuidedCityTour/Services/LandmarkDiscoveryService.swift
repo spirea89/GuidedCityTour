@@ -32,6 +32,16 @@ struct LandmarkDiscoveryService {
         let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else { throw LandmarkDiscoveryError.missingKey }
 
+        let areaKey = SupabaseCacheService.areaCacheKey(
+            center: center,
+            radius: radius,
+            areaLabel: areaLabel,
+            model: model
+        )
+        if let cached = await SupabaseCacheService.fetchAreaPlaces(cacheKey: areaKey) {
+            return cached
+        }
+
         let client = OpenAIClient(apiKey: key, model: model)
         let input = userPrompt(center: center, radius: radius, areaLabel: areaLabel)
 
@@ -99,6 +109,15 @@ struct LandmarkDiscoveryService {
             return true
         }
         if unique.isEmpty { throw LandmarkDiscoveryError.noPlaces }
+
+        await SupabaseCacheService.saveAreaPlaces(
+            cacheKey: areaKey,
+            center: center,
+            radius: radius,
+            areaLabel: areaLabel,
+            model: model,
+            places: unique
+        )
         return unique
     }
 

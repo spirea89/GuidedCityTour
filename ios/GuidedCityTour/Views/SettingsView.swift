@@ -4,11 +4,35 @@ struct SettingsView: View {
     @Environment(SettingsStore.self) private var settings
     @Environment(\.dismiss) private var dismiss
     @State private var keyDraft = ""
+    @State private var supabaseDraft = ""
 
     var body: some View {
         @Bindable var settings = settings
         NavigationStack {
             Form {
+                Section("Shared story cache") {
+                    SecureField("Supabase anon key", text: $supabaseDraft)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Button("Save Supabase key") {
+                        settings.supabaseAnonKey = supabaseDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                        settings.syncSupabaseClient()
+                    }
+                    if settings.hasSupabaseKey {
+                        Label("Connected to shared cache", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.footnote)
+                        Button("Clear Supabase key", role: .destructive) {
+                            supabaseDraft = ""
+                            settings.supabaseAnonKey = ""
+                            settings.syncSupabaseClient()
+                        }
+                    }
+                    Text("Project: ifoybmzofjdgekvvrsot. Paste the anon public key from Supabase → Settings → API. Saved stories and map pins are reused for everyone — no extra OpenAI credits.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("OpenAI") {
                     SecureField("API key", text: $keyDraft)
                         .textInputAutocapitalization(.never)
@@ -52,11 +76,18 @@ struct SettingsView: View {
                         if !keyDraft.isEmpty {
                             settings.apiKey = keyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
                         }
+                        if !supabaseDraft.isEmpty {
+                            settings.supabaseAnonKey = supabaseDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                            settings.syncSupabaseClient()
+                        }
                         dismiss()
                     }
                 }
             }
-            .onAppear { keyDraft = settings.apiKey }
+            .onAppear {
+                keyDraft = settings.apiKey
+                supabaseDraft = settings.supabaseAnonKey
+            }
         }
     }
 }
