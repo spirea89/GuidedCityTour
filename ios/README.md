@@ -21,12 +21,9 @@ An OpenAI API key is required to rank notable buildings and to generate stories.
 
 ### Shared story cache (Supabase)
 
-Stories and map pins are saved to Supabase project **`ifoybmzofjdgekvvrsot`** so repeat visits skip OpenAI.
+Stories and map pins are saved to Supabase project **`ifoybmzofjdgekvvrsot`** so repeat visits skip OpenAI. The publishable client key is built into the app — users do not configure Supabase.
 
-1. Run the SQL in [`../supabase/migrations/`](../supabase/migrations/) once (Supabase SQL Editor).
-2. In the app: **Settings → Shared story cache** → paste the **anon public** key from Supabase → Settings → API.
-
-Without the anon key the app still works with on-device cache only.
+Run the SQL in [`../supabase/migrations/`](../supabase/migrations/) once in the Supabase SQL Editor if you have not already.
 
 ### Simulator location
 

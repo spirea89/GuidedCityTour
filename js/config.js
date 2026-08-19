@@ -125,13 +125,13 @@ export const API = {
 };
 
 /**
- * Shared Supabase cache - leave empty in repo. Set at runtime / via Worker only.
- * Never commit service-role keys. Anon key only if RLS allows safe read of public cache.
+ * Shared Supabase cache — publishable key is safe in client code (RLS protects data).
+ * Never commit the service-role key.
  * @see docs/ai/supabase-cache.md
  */
 export const SUPABASE = {
   url: "https://ifoybmzofjdgekvvrsot.supabase.co",
-  anonKey: "", // set at runtime — Project Settings → API → anon public
+  anonKey: "sb_publishable_SUftoAM4bElr34PXERf_RQ_f9TZJcRl",
 };
 
 export const WEB_SEARCH_UNAVAILABLE_HINT =

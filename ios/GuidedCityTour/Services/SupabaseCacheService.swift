@@ -45,10 +45,8 @@ struct CachedPlace: Codable, Sendable {
 
 enum SupabaseCacheService {
     static var isConfigured: Bool {
-        !anonKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !SupabaseConfig.publishableKey.isEmpty
     }
-
-    static var anonKey: String = ""
 
     // MARK: - Story cache
 
@@ -216,8 +214,8 @@ enum SupabaseCacheService {
     }
 
     private static func applyHeaders(_ request: inout URLRequest, prefer: String? = nil) {
-        request.setValue(anonKey, forHTTPHeaderField: "apikey")
-        request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+        request.setValue(SupabaseConfig.publishableKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(SupabaseConfig.publishableKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let prefer {
             request.setValue(prefer, forHTTPHeaderField: "Prefer")

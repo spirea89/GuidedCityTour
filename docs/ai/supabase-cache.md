@@ -1,6 +1,6 @@
 # Supabase shared research cache
 
-**Status:** Wired for project `ifoybmzofjdgekvvrsot`. Run SQL in `supabase/migrations/` once, then paste the anon key in iOS Settings (or set `SUPABASE.anonKey` for web).
+**Status:** Wired for project `ifoybmzofjdgekvvrsot`. Publishable key is embedded in iOS + web clients. Run SQL in `supabase/migrations/` once.
 
 **Why:** IndexedDB is **device-local**. The next visitor to Stephansdom should reuse verified facts, not pay for another web_search. Supabase stores **verified research payloads** once per place (plus category/kids variants via cache key).
 
@@ -11,7 +11,7 @@
 1. Cache **verified, validated** tour results only (`status === "ok"` with non-empty `claims.verified`).
 2. Never store API keys or raw user prompts with PII beyond place name + coords.
 3. Prefer **Worker → Supabase service role** for writes; browser anon key only with strict RLS (read public cache, no arbitrary writes) — or no browser Supabase at all.
-4. Leave `SUPABASE.url` / `SUPABASE.anonKey` empty in the repo (`js/config.js`).
+4. Ship the **publishable** key in client code; never commit the **service-role** key.
 
 ---
 

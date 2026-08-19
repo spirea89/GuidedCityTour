@@ -18,9 +18,7 @@ See [docs/ai/supabase-cache.md](../docs/ai/supabase-cache.md) for cache keys and
 
 1. Open [Supabase SQL Editor](https://supabase.com/dashboard/project/ifoybmzofjdgekvvrsot/sql/new).
 2. Paste and run the contents of `migrations/20260819000000_initial_schema.sql`.
-3. In **Project Settings → API**, copy the **anon public** key.
-4. **iOS:** paste the anon key in **Settings → Shared story cache** (stored in Keychain).
-5. **Web:** set `SUPABASE.anonKey` at deploy/runtime (never commit the key to git).
+3. The **publishable key** is already in `SupabaseConfig.swift` and `js/config.js` (safe for client apps with RLS).
 
 ### CLI (optional)
 

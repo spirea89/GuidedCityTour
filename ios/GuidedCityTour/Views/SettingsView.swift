@@ -4,35 +4,11 @@ struct SettingsView: View {
     @Environment(SettingsStore.self) private var settings
     @Environment(\.dismiss) private var dismiss
     @State private var keyDraft = ""
-    @State private var supabaseDraft = ""
 
     var body: some View {
         @Bindable var settings = settings
         NavigationStack {
             Form {
-                Section("Shared story cache") {
-                    SecureField("Supabase anon key", text: $supabaseDraft)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button("Save Supabase key") {
-                        settings.supabaseAnonKey = supabaseDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                        settings.syncSupabaseClient()
-                    }
-                    if settings.hasSupabaseKey {
-                        Label("Connected to shared cache", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                            .font(.footnote)
-                        Button("Clear Supabase key", role: .destructive) {
-                            supabaseDraft = ""
-                            settings.supabaseAnonKey = ""
-                            settings.syncSupabaseClient()
-                        }
-                    }
-                    Text("Project: ifoybmzofjdgekvvrsot. Paste the anon public key from Supabase → Settings → API. Saved stories and map pins are reused for everyone — no extra OpenAI credits.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
                 Section("OpenAI") {
                     SecureField("API key", text: $keyDraft)
                         .textInputAutocapitalization(.never)
@@ -64,6 +40,12 @@ struct SettingsView: View {
                 Section("About") {
                     LabeledContent("App", value: AppIdentity.displayName)
                     LabeledContent("Pipeline", value: AppIdentity.version)
+                    Label("Shared story cache enabled", systemImage: "icloud.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text("Stories and map pins are saved to a shared database so repeat visits skip OpenAI for the same place.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                     Text("City Quest pins the most important buildings in a neighbourhood. Tap a pin for sourced history — the same grounded tour pipeline as Guided City Tour.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -76,18 +58,11 @@ struct SettingsView: View {
                         if !keyDraft.isEmpty {
                             settings.apiKey = keyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
                         }
-                        if !supabaseDraft.isEmpty {
-                            settings.supabaseAnonKey = supabaseDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                            settings.syncSupabaseClient()
-                        }
                         dismiss()
                     }
                 }
             }
-            .onAppear {
-                keyDraft = settings.apiKey
-                supabaseDraft = settings.supabaseAnonKey
-            }
+            .onAppear { keyDraft = settings.apiKey }
         }
     }
 }
