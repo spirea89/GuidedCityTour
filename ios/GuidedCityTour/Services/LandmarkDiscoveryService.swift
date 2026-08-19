@@ -95,10 +95,8 @@ struct LandmarkDiscoveryService {
                 group.addTask {
                     let building = await self.makeBuilding(
                         draft: draft,
-                        index: index,
                         osmLandmarks: osmLandmarks,
                         center: center,
-                        areaLabel: areaLabel,
                         radius: radius
                     )
                     return (index, building)
@@ -138,10 +136,8 @@ struct LandmarkDiscoveryService {
 
     private func makeBuilding(
         draft: DraftPlace,
-        index: Int,
         osmLandmarks: [GameBuilding],
         center: CLLocationCoordinate2D,
-        areaLabel: String,
         radius: Double
     ) async -> GameBuilding? {
         if let osm = PlaceNameMatching.bestOSMMatch(
@@ -152,31 +148,7 @@ struct LandmarkDiscoveryService {
         ) {
             return building(from: osm, draft: draft, source: "osm")
         }
-
-        guard let coordinate = await resolveCoordinate(
-            draft: draft,
-            center: center,
-            areaLabel: areaLabel,
-            radius: radius
-        ) else { return nil }
-
-        let entity = Self.entity(from: draft.type)
-        let nameKey = draft.name.lowercased()
-        return GameBuilding(
-            id: "pin-\(index + 1)-\(nameKey.prefix(24))",
-            name: draft.name,
-            entityType: entity,
-            coordinate: coordinate,
-            heightMeters: 16,
-            widthMeters: 12,
-            depthMeters: 12,
-            tags: geocodeTags(draft: draft),
-            isLandmark: true,
-            typeLabel: draft.type.isEmpty ? entity.displayLabel.lowercased() : draft.type,
-            whyNotable: draft.whyNotable,
-            osmId: nil,
-            osmType: nil
-        )
+        return nil
     }
 
     private func building(
@@ -204,65 +176,6 @@ struct LandmarkDiscoveryService {
             osmId: osm.osmId,
             osmType: osm.osmType
         )
-    }
-
-    private func geocodeTags(draft: DraftPlace) -> [String: String] {
-        var tags = ["name": draft.name, "discovery": "geocode"]
-        if !draft.address.isEmpty { tags["address"] = draft.address }
-        return tags
-    }
-
-    private func resolveCoordinate(
-        draft: DraftPlace,
-        center: CLLocationCoordinate2D,
-        areaLabel: String,
-        radius: Double
-    ) async -> CLLocationCoordinate2D? {
-        let queries = geocodeQueries(draft: draft, areaLabel: areaLabel)
-        for query in queries {
-            if let hits = try? await GeocoderService.search(query, near: center, limit: 6),
-               let hit = PlaceNameMatching.bestGeocodeHit(
-                   hits: hits,
-                   expectedName: draft.name,
-                   center: center,
-                   radius: radius
-               )
-            {
-                return hit.coordinate
-            }
-        }
-
-        if let lat = draft.lat, let lng = draft.lng,
-           lat != 0 || lng != 0,
-           abs(lat) <= 90, abs(lng) <= 180
-        {
-            let proposed = CLLocationCoordinate2D(latitude: lat, longitude: lng)
-            if PlaceNameMatching.withinRadius(proposed, center: center, radius: radius) {
-                return proposed
-            }
-        }
-        return nil
-    }
-
-    private func geocodeQueries(draft: DraftPlace, areaLabel: String) -> [String] {
-        var out: [String] = []
-        if !draft.address.isEmpty {
-            out.append("\(draft.name), \(draft.address)")
-            out.append(draft.address)
-        }
-        if !areaLabel.isEmpty {
-            out.append("\(draft.name), \(areaLabel)")
-        }
-        out.append(draft.name)
-        var seen = Set<String>()
-        return out.filter { query in
-            let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard trimmed.count >= 2 else { return false }
-            let key = trimmed.lowercased()
-            if seen.contains(key) { return false }
-            seen.insert(key)
-            return true
-        }
     }
 
     private func filterStoryBackedPlaces(
@@ -298,7 +211,7 @@ struct LandmarkDiscoveryService {
         Return FEWER places if there are not enough notable ones — do NOT pad the list to reach \(maxPins).
         Skip shops, apartments, and generic streets.
 
-        For each place include the real street address when you know it. Coordinates must be the actual building location, not the neighborhood center.
+        For each place include the real street address when you know it. Only include places that correspond to a real, named OpenStreetMap landmark/building inside the radius. Coordinates must be the actual building location, not the neighborhood center.
 
         JSON only:
         {"places":[{"name":"","address":"","type":"church|museum|monument|palace|landmark|building","why_notable":"one sentence","lat":0,"lng":0}]}
@@ -310,7 +223,7 @@ struct LandmarkDiscoveryService {
     Use web search when available. Prefer official / well-known heritage sites.
     Do not invent obscure buildings. Names must be real places in that neighbourhood.
     Every place must fall within the requested radius from the center point.
-    Include street addresses when known. Coordinates must pinpoint the building, not a nearby street or district centroid.
+    Include street addresses when known. Only return places likely to exist as named OpenStreetMap features. Coordinates must pinpoint the building, not a nearby street or district centroid.
     Return fewer items rather than guessing locations. Output a single JSON object. No markdown.
     """
 

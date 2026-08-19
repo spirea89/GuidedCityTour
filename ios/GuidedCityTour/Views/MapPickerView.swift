@@ -132,7 +132,7 @@ struct MapPickerView: View {
             .buttonStyle(.borderedProminent)
             .disabled(app.isLoadingBuildings)
 
-            Text("The guide only keeps places where it can generate a verified story. If none qualify in this radius, it will ask you to search wider.")
+            Text("The guide only keeps places that match real OpenStreetMap landmarks and have a verified story. If none qualify in this radius, it will ask you to search wider.")
                 .font(.caption)
                 .foregroundStyle(QuestTheme.muted)
         }
