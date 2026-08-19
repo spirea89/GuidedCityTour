@@ -159,12 +159,17 @@ struct TourPipeline {
         \(building.wikidata.map { "Wikidata: \($0)" } ?? "")
         \(building.wikipedia.map { "Wikipedia: \($0)" } ?? "")
 
-        !! LOCATION LOCK — READ CAREFULLY !!
-        The target building is in: \(cityHint.isEmpty ? "the city/town at the coordinates above" : cityHint)
-        Required web search query: "\(building.displayName) \(cityHint)"
-        - If a search result is about a building with the SAME NAME in a DIFFERENT city/county/country → move to claims.uncertain, note "source refers to different location"
-        - A claim is only verified if the source explicitly confirms it is about THIS building in \(cityHint.isEmpty ? "this specific location" : cityHint)
-        - If no location-specific verified source exists → set status "no_history". Do NOT recycle facts from another location with the same name.
+        !! LOCATION LOCK — STRICT !!
+        This building is in: \(cityHint.isEmpty ? "the city/town at the coordinates above" : cityHint)
+        Search query to use: "\(building.displayName) \(cityHint)"
+
+        A source is ONLY accepted as verified evidence if the source text
+        (title, URL, or body) explicitly mentions "\(cityHint.isEmpty ? "the city at these coordinates" : cityHint)"
+        or a known district/county of that city.
+
+        Sources that do NOT mention \(cityHint.isEmpty ? "this city" : cityHint) must be placed in claims.uncertain.
+        If no city-confirmed source exists → set status "no_history".
+        NEVER use a source about a same-named building in a different city as verified evidence.
 
         Additional OSM tags:
         \(extras)
@@ -263,33 +268,33 @@ struct TourPipeline {
         return trimmed
     }
 
-    /// Strips verified claims whose sources clearly refer to a different city,
-    /// and downgrades the result to no_history if nothing verified remains.
+    /// Keeps a verified claim only when AT LEAST ONE of its sources explicitly
+    /// mentions the building's city/town. Claims with no location-matching source
+    /// are demoted to uncertain; the result becomes no_history when nothing remains.
     private func enforceLocationIntegrity(_ result: TourResult, building: GameBuilding) -> TourResult {
-        let buildingCity = cityName(building: building)
-        guard !buildingCity.isEmpty else { return result }
+        let cityAliases = cityAliasSet(building: building)
+        guard !cityAliases.isEmpty else { return result }
 
-        let norm = normalize(buildingCity)
+        func sourceContainsCity(_ source: ClaimSource) -> Bool {
+            let combined = normalize(source.title + " " + source.url + " " + source.publisher)
+            return cityAliases.contains(where: { combined.contains($0) })
+        }
 
+        // A claim passes if at least one of its sources mentions the city.
         let stillVerified = result.claims.verified.filter { claim in
-            claim.sources.allSatisfy { source in
-                let combined = normalize(source.title + " " + source.url + " " + source.publisher)
-                return locationMatch(combined, city: norm)
-            }
+            claim.sources.contains(where: { sourceContainsCity($0) })
         }
         let demoted = result.claims.verified.filter { claim in
             !stillVerified.contains(where: { $0.id == claim.id })
         }
 
-        if stillVerified.count == result.claims.verified.count {
-            return result
-        }
+        if demoted.isEmpty { return result }
 
         let newUncertain = result.claims.uncertain + demoted.map { claim in
             FactClaim(
                 text: claim.text,
                 category: claim.category,
-                confidence: min(claim.confidence, 0.4),
+                confidence: min(claim.confidence, 0.35),
                 sources: claim.sources
             )
         }
@@ -300,10 +305,15 @@ struct TourPipeline {
             unknown: result.claims.unknown
         )
 
+        let filteredCitations = result.citations.filter { cite in
+            sourceContainsCity(cite)
+        }
+
         if stillVerified.isEmpty {
+            let cityDisplay = cityAliases.first ?? "this location"
             return TourResult(
                 status: .noHistory,
-                message: "Sources found were about a different location with the same name, not this specific building in \(buildingCity). Try a wider or different search.",
+                message: "No sources confirmed this specific building in \(cityDisplay). Stories about buildings with the same name in other locations were excluded.",
                 place: result.place,
                 claims: newClaims,
                 narration: .empty,
@@ -321,15 +331,37 @@ struct TourPipeline {
             place: result.place,
             claims: newClaims,
             narration: result.narration,
-            citations: result.citations.filter { cite in
-                let combined = normalize(cite.title + " " + cite.url + " " + cite.publisher)
-                return locationMatch(combined, city: norm)
-            },
+            citations: filteredCitations.isEmpty ? stillVerified.flatMap(\.sources) : filteredCitations,
             errors: result.errors,
             cached: result.cached,
             researchAvailable: result.researchAvailable,
             generatedAt: result.generatedAt
         )
+    }
+
+    /// Builds a set of normalised location strings to match against source text.
+    /// Includes city, county/district, and short slugs to handle diacritics and
+    /// alternate spellings (e.g. "Dambovita" for "Dâmbovița").
+    private func cityAliasSet(building: GameBuilding) -> [String] {
+        let tags = building.tags
+        let raw = [
+            tags["addr:city"],
+            tags["addr:town"],
+            tags["addr:village"],
+            tags["addr:county"],
+            tags["addr:district"],
+            tags["addr:state"],
+            tags["city"]
+        ].compactMap { $0 }.filter { !$0.isEmpty }
+
+        var aliases: [String] = []
+        for name in raw {
+            let norm = normalize(name)
+            if !norm.isEmpty && norm.count >= 3 {
+                aliases.append(norm)
+            }
+        }
+        return aliases
     }
 
     private func cityName(building: GameBuilding) -> String {
@@ -339,21 +371,6 @@ struct TourPipeline {
             ?? tags["addr:village"]
             ?? tags["city"]
             ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    /// True when the source text contains the expected city name OR contains
-    /// no competing city-like term that contradicts it.
-    /// We keep the rule simple: if the source text explicitly mentions the
-    /// building's city/town, it passes. If it mentions NOTHING location-specific,
-    /// we give the benefit of the doubt (no false positives on generic sources).
-    private func locationMatch(_ sourceText: String, city normCity: String) -> Bool {
-        if sourceText.contains(normCity) { return true }
-        // Generic / non-geographic sources (e.g. architecture.org, wikidata item pages)
-        // should not be penalised because they don't mention the city name.
-        // We only reject a source if it explicitly names a DIFFERENT place.
-        // That heuristic is hard to express perfectly without NLP; the prompt-level
-        // rule handles the heavy lifting — this is a safety net for obvious cases.
-        return true
     }
 
     private func normalize(_ text: String) -> String {
@@ -405,10 +422,11 @@ struct TourPipeline {
     static let researchDeveloperPrompt = """
     Mode: RESEARCH + FACT EXTRACTION + NARRATE
     Use web_search when the tool is available. Prefer authoritative domains.
-    IMPORTANT: Search for the building using BOTH its name AND the city/address provided.
-    Discard any source that is clearly about a same-named building in a different location.
+    IMPORTANT: Search using the building name AND its city together (see LOCATION LOCK in the prompt).
+    A source is only accepted if it explicitly mentions the building's city/town in its title, URL, or content.
+    Sources that do not mention the city must go to claims.uncertain, not claims.verified.
     Extract claims into verified | uncertain | legends | unknown.
-    Every verified claim MUST include at least one source {title,url,publisher,tier}.
+    Every verified claim MUST include at least one city-confirmed source {title,url,publisher,tier}.
     Then write narration.adult ONLY from verified (+ labeled legends section).
     Fill narration.sections for history, architecture, famous_people, interesting_facts, today when evidence exists.
     Omit empty sections rather than inventing content.
