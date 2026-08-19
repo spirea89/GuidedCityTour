@@ -132,7 +132,7 @@ struct MapPickerView: View {
             .buttonStyle(.borderedProminent)
             .disabled(app.isLoadingBuildings)
 
-            Text("The guide picks a handful of the most important buildings and monuments, then pins them. Tap a pin to start its story.")
+            Text("The guide picks important buildings and monuments inside your radius, then pins them at their real map location. Tap a pin to start its story.")
                 .font(.caption)
                 .foregroundStyle(QuestTheme.muted)
         }

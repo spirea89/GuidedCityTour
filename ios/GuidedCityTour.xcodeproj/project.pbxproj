@@ -22,6 +22,7 @@
 		55A811792DEBE5FE55886521 /* TourPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FC749A1441AE4DF7C5DF49F /* TourPipeline.swift */; };
 		838086257F85A3779D3875E5 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDDE7558A6403A54860ADEA3 /* Theme.swift */; };
 		AF34EC893C77FACD1E34CDA2 /* MuseumGuideNarrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 746DED54AEB95E51C0E5F4CB /* MuseumGuideNarrator.swift */; };
+		B2C3D4E5F60718293A4B5C6D /* PlaceNameMatching.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F60718293A4B5C6D7E /* PlaceNameMatching.swift */; };
 		0A50C4A70DD85493514A07EB /* BuildingHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54DB3D7B9CD353B113BA9AB1 /* BuildingHistoryView.swift */; };
 		3525B11ED0C311FA1A2C7607 /* LandmarkDiscoveryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68774D4A5040493CAF354C8D /* LandmarkDiscoveryService.swift */; };
 		28148BB7BE04DA33339D2E41 /* LandmarkMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E87300D5E5CF25B6AE67FBEA /* LandmarkMapView.swift */; };
@@ -49,6 +50,7 @@
 		BDDE7558A6403A54860ADEA3 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		54DB3D7B9CD353B113BA9AB1 /* BuildingHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingHistoryView.swift; sourceTree = "<group>"; };
 		746DED54AEB95E51C0E5F4CB /* MuseumGuideNarrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuseumGuideNarrator.swift; sourceTree = "<group>"; };
+		C3D4E5F60718293A4B5C6D7E /* PlaceNameMatching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceNameMatching.swift; sourceTree = "<group>"; };
 		68774D4A5040493CAF354C8D /* LandmarkDiscoveryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkDiscoveryService.swift; sourceTree = "<group>"; };
 		E87300D5E5CF25B6AE67FBEA /* LandmarkMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkMapView.swift; sourceTree = "<group>"; };
 		B621DE77DFF7D78CB32826C7 /* MapPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapPickerView.swift; sourceTree = "<group>"; };
@@ -102,6 +104,7 @@
 				0712DA5983C3011B96A994E7 /* LocationService.swift */,
 				DD164932A7F84C43E30EBCF6 /* OpenAIClient.swift */,
 				746DED54AEB95E51C0E5F4CB /* MuseumGuideNarrator.swift */,
+				C3D4E5F60718293A4B5C6D7E /* PlaceNameMatching.swift */,
 				68774D4A5040493CAF354C8D /* LandmarkDiscoveryService.swift */,
 				F4456974E601FDED920F0A21 /* OverpassService.swift */,
 				871C6C0804A84E52D8A1E5CA /* SettingsStore.swift */,
@@ -139,6 +142,7 @@
 				0AA36FB6E684938ED0668278 /* LocationService.swift in Sources */,
 				33DBD439E201A8CC28EEEA61 /* OpenAIClient.swift in Sources */,
 				AF34EC893C77FACD1E34CDA2 /* MuseumGuideNarrator.swift in Sources */,
+				B2C3D4E5F60718293A4B5C6D /* PlaceNameMatching.swift in Sources */,
 				3525B11ED0C311FA1A2C7607 /* LandmarkDiscoveryService.swift in Sources */,
 				B54FAE7B55018103132A3D4C /* OverpassService.swift in Sources */,
 				A732919228173A6F07C3EBE2 /* SettingsStore.swift in Sources */,

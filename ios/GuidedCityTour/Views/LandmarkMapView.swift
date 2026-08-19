@@ -91,7 +91,7 @@ struct LandmarkMapView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("\(app.buildings.count) notable places")
                 .font(.headline)
-            Text("Tap a pin to hear its history. The guide picked the most important buildings and monuments in this area.")
+            Text("Tap a pin to hear its history. Fewer pins means only genuinely notable places were found in this area.")
                 .font(.footnote)
                 .foregroundStyle(QuestTheme.muted)
             ScrollView(.horizontal, showsIndicators: false) {

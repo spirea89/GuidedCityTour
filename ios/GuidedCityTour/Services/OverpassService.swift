@@ -38,6 +38,39 @@ struct OverpassService: Sendable {
         }.value
     }
 
+    /// Named tourism / historic / worship POIs with OSM center coordinates (for pin placement).
+    func fetchNamedLandmarks(
+        center: CLLocationCoordinate2D,
+        radius: Double
+    ) async throws -> [GameBuilding] {
+        try await Task.detached(priority: .userInitiated) { [self] in
+            let query = Self.namedLandmarkQuery(
+                lat: center.latitude,
+                lng: center.longitude,
+                radius: radius
+            )
+            var lastError: Error = OverpassError.empty
+            for endpoint in endpoints {
+                if Task.isCancelled { throw OverpassError.cancelled }
+                do {
+                    let elements = try await fetchElements(endpoint: endpoint, query: query)
+                    let landmarks = normalizeLandmarks(
+                        elements: elements,
+                        center: center,
+                        radius: radius
+                    )
+                    if !landmarks.isEmpty { return landmarks }
+                    lastError = OverpassError.empty
+                } catch is CancellationError {
+                    throw OverpassError.cancelled
+                } catch {
+                    lastError = error
+                }
+            }
+            throw lastError
+        }.value
+    }
+
     private func fetchAndNormalize(
         center: CLLocationCoordinate2D,
         radius: Double
@@ -146,6 +179,63 @@ struct OverpassService: Sendable {
             picked.append(contentsOf: unnamed.prefix(remaining))
         }
         return picked
+    }
+
+    private func normalizeLandmarks(
+        elements: [OverpassElement],
+        center: CLLocationCoordinate2D,
+        radius: Double
+    ) -> [GameBuilding] {
+        var byId: [String: GameBuilding] = [:]
+
+        for el in elements {
+            let tags = el.tags ?? [:]
+            let rawName = (tags["name"] ?? tags["name:en"] ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard rawName.count >= 2, let coord = el.centerCoordinate else { continue }
+
+            if Geo.haversineMeters(center, coord) > radius + PlaceNameMatching.locationSlackM {
+                continue
+            }
+
+            let entity = EntityTyping.infer(from: tags)
+            let id = "\(el.type ?? "way")/\(el.id ?? 0)"
+            let building = GameBuilding(
+                id: id,
+                name: rawName,
+                entityType: entity == .unknown ? .landmark : entity,
+                coordinate: coord,
+                heightMeters: BuildingHeight.estimate(tags: tags, entityType: entity),
+                widthMeters: 12,
+                depthMeters: 12,
+                tags: tags,
+                isLandmark: true,
+                typeLabel: EntityTyping.typeLabel(from: tags),
+                whyNotable: "",
+                osmId: el.id,
+                osmType: el.type
+            )
+            byId[id] = building
+        }
+
+        return Array(byId.values).sorted {
+            Geo.haversineMeters(center, $0.coordinate) < Geo.haversineMeters(center, $1.coordinate)
+        }
+    }
+
+    private static func namedLandmarkQuery(lat: Double, lng: Double, radius: Double) -> String {
+        let r = Int(min(max(radius, 80), 1200).rounded())
+        return """
+        [out:json][timeout:14];
+        (
+          nwr["name"]["tourism"](around:\(r),\(lat),\(lng));
+          nwr["name"]["historic"](around:\(r),\(lat),\(lng));
+          nwr["name"]["amenity"~"^(museum|theatre|place_of_worship|arts_centre)$"](around:\(r),\(lat),\(lng));
+          nwr["name"]["building"~"^(cathedral|church|chapel|mosque|synagogue|temple|castle|palace)$"](around:\(r),\(lat),\(lng));
+          nwr["name"]["leisure"~"^(stadium|park|garden)$"](around:\(r),\(lat),\(lng));
+        );
+        out center tags 120;
+        """
     }
 
     private static func sketchSize(id: String, entity: EntityType, isLandmark: Bool) -> (width: Double, depth: Double) {
