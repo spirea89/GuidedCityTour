@@ -11,8 +11,9 @@ struct TourPipeline {
         nearby: [GameBuilding],
         skipCache: Bool = false
     ) async -> TourResult {
-        let place = identify(building: building, nearby: nearby)
-        let cacheKey = TourCache.key(building: building, kids: kidsMode, model: model)
+        let enriched = await enrichWithGeocodedCity(building)
+        let place = identify(building: enriched, nearby: nearby)
+        let cacheKey = TourCache.key(building: enriched, kids: kidsMode, model: model)
 
         if !skipCache, var hit = TourCache.getLocal(cacheKey) {
             hit.cached = true
@@ -43,12 +44,12 @@ struct TourPipeline {
         switch withSearch {
         case .success(let text):
             var result = parse(text, fallbackPlace: place, researchAvailable: true)
-            result = enforceLocationIntegrity(result, building: building)
+            result = enforceLocationIntegrity(result, building: enriched)
             if result.status == .ok && !result.claims.verified.isEmpty {
                 TourCache.set(cacheKey, result)
                 await SupabaseCacheService.saveStory(
                     cacheKey: cacheKey,
-                    building: building,
+                    building: enriched,
                     result: result,
                     kidsMode: kidsMode
                 )
@@ -71,6 +72,38 @@ struct TourPipeline {
         case .failure(let error):
             return TourResult.error(error.localizedDescription, place: place)
         }
+    }
+
+    /// When OSM tags have no addr:city/town/village, do a reverse geocode lookup
+    /// and inject the city so the location-integrity filter has something to match.
+    private func enrichWithGeocodedCity(_ building: GameBuilding) async -> GameBuilding {
+        let tags = building.tags
+        let hasCity = tags["addr:city"] != nil || tags["addr:town"] != nil
+            || tags["addr:village"] != nil || tags["city"] != nil
+        guard !hasCity else { return building }
+
+        if let hit = try? await GeocoderService.reverse(coordinate: building.coordinate),
+           !hit.city.isEmpty
+        {
+            var enriched = tags
+            enriched["addr:city"] = hit.city
+            return GameBuilding(
+                id: building.id,
+                name: building.name,
+                entityType: building.entityType,
+                coordinate: building.coordinate,
+                heightMeters: building.heightMeters,
+                widthMeters: building.widthMeters,
+                depthMeters: building.depthMeters,
+                tags: enriched,
+                isLandmark: building.isLandmark,
+                typeLabel: building.typeLabel,
+                whyNotable: building.whyNotable,
+                osmId: building.osmId,
+                osmType: building.osmType
+            )
+        }
+        return building
     }
 
     func identify(building: GameBuilding, nearby: [GameBuilding]) -> IdentifiedPlace {
