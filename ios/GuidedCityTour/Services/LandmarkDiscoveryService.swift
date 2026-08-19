@@ -4,6 +4,7 @@ import CoreLocation
 enum LandmarkDiscoveryError: LocalizedError {
     case missingKey
     case noPlaces
+    case noStoryPlaces
     case failed(String)
 
     var errorDescription: String? {
@@ -12,6 +13,8 @@ enum LandmarkDiscoveryError: LocalizedError {
             return "Add an OpenAI API key in Settings so the guide can pick the important buildings."
         case .noPlaces:
             return "No notable buildings were found for this area. Try a wider radius or another neighbourhood."
+        case .noStoryPlaces:
+            return "No buildings with a verified story were found in this radius. Try extending the search radius."
         case .failed(let message):
             return message
         }
@@ -27,7 +30,8 @@ struct LandmarkDiscoveryService {
     func discover(
         center: CLLocationCoordinate2D,
         radius: Double,
-        areaLabel: String
+        areaLabel: String,
+        kidsMode: Bool
     ) async throws -> [GameBuilding] {
         let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else { throw LandmarkDiscoveryError.missingKey }
@@ -114,15 +118,22 @@ struct LandmarkDiscoveryService {
         }
         if unique.isEmpty { throw LandmarkDiscoveryError.noPlaces }
 
+        let storyBacked = await filterStoryBackedPlaces(
+            unique,
+            apiKey: key,
+            kidsMode: kidsMode
+        )
+        if storyBacked.isEmpty { throw LandmarkDiscoveryError.noStoryPlaces }
+
         await SupabaseCacheService.saveAreaPlaces(
             cacheKey: areaKey,
             center: center,
             radius: radius,
             areaLabel: areaLabel,
             model: model,
-            places: unique
+            places: storyBacked
         )
-        return unique
+        return storyBacked
     }
 
     private func makeBuilding(
@@ -252,6 +263,28 @@ struct LandmarkDiscoveryService {
             seen.insert(key)
             return true
         }
+    }
+
+    private func filterStoryBackedPlaces(
+        _ buildings: [GameBuilding],
+        apiKey: String,
+        kidsMode: Bool
+    ) async -> [GameBuilding] {
+        let pipeline = TourPipeline(
+            apiKey: apiKey,
+            model: model,
+            kidsMode: kidsMode
+        )
+
+        var accepted: [GameBuilding] = []
+        for building in buildings {
+            let nearby = buildings.filter { $0.id != building.id }
+            let result = await pipeline.run(building: building, nearby: nearby)
+            if result.status == .ok, !result.claims.verified.isEmpty {
+                accepted.append(building)
+            }
+        }
+        return accepted
     }
 
     private func userPrompt(center: CLLocationCoordinate2D, radius: Double, areaLabel: String) -> String {

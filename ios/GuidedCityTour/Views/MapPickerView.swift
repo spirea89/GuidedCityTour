@@ -132,7 +132,7 @@ struct MapPickerView: View {
             .buttonStyle(.borderedProminent)
             .disabled(app.isLoadingBuildings)
 
-            Text("The guide picks important buildings and monuments inside your radius, then pins them at their real map location. Tap a pin to start its story.")
+            Text("The guide only keeps places where it can generate a verified story. If none qualify in this radius, it will ask you to search wider.")
                 .font(.caption)
                 .foregroundStyle(QuestTheme.muted)
         }
@@ -215,10 +215,12 @@ struct MapPickerView: View {
         app.loadMessage = "Finding the important buildings…"
         do {
             let service = LandmarkDiscoveryService(apiKey: settings.apiKey, model: settings.model)
+            app.loadMessage = "Checking which places have verified stories…"
             let buildings = try await service.discover(
                 center: center,
                 radius: radius,
-                areaLabel: label
+                areaLabel: label,
+                kidsMode: settings.kidsMode
             )
             app.buildings = buildings
             app.selection = MapSelection(center: center, radiusMeters: radius, label: label)
