@@ -69,8 +69,8 @@ struct OnboardingView: View {
     private var keyPage: some View {
         VStack(alignment: .leading, spacing: 14) {
             page(
-                title: "OpenAI key (optional now)",
-                bodyText: "History is researched with web sources when your key is set. Stored only in the iOS Keychain and sent to OpenAI. You can skip and add it later in Settings."
+                title: "AI provider (optional now)",
+                bodyText: "Use OpenAI in the cloud, or later switch to Local (LM Studio / Bionic + Gemma) in Settings to avoid API costs. You can skip and configure later."
             )
             SecureField("sk-...", text: $keyDraft)
                 .textInputAutocapitalization(.never)

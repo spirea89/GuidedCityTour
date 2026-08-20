@@ -49,7 +49,7 @@ struct MapPickerView: View {
                     Button {
                         showSettings = true
                     } label: {
-                        Image(systemName: settings.hasApiKey ? "key.fill" : "key")
+                        Image(systemName: settings.hasConfiguredLLM ? "key.fill" : "key")
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -192,8 +192,10 @@ struct MapPickerView: View {
     }
 
     private func discover() async {
-        guard settings.hasApiKey else {
-            app.searchError = "Add an OpenAI API key in Settings so the guide can pick the important buildings."
+        guard settings.hasConfiguredLLM else {
+            app.searchError = settings.usesLocalLLM
+                ? "Set Local base URL and model id in Settings (LM Studio server must be running)."
+                : "Add an OpenAI API key in Settings so the guide can pick the important buildings."
             showSettings = true
             return
         }
@@ -214,13 +216,16 @@ struct MapPickerView: View {
 
         app.loadMessage = "Finding the important buildings…"
         do {
-            let service = LandmarkDiscoveryService(apiKey: settings.apiKey, model: settings.model)
+            let service = LandmarkDiscoveryService(
+                client: settings.makeClient(),
+                usesLocalLLM: settings.usesLocalLLM,
+                kidsMode: settings.kidsMode
+            )
             app.loadMessage = "Checking which places have verified stories…"
             let buildings = try await service.discover(
                 center: center,
                 radius: radius,
-                areaLabel: label,
-                kidsMode: settings.kidsMode
+                areaLabel: label
             )
             app.buildings = buildings
             app.selection = MapSelection(center: center, radiusMeters: radius, label: label)

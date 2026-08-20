@@ -102,9 +102,11 @@ struct BuildingHistoryView: View {
                 .font(.caption)
                 .foregroundStyle((narrator.isSpeaking || narrator.isPreparing) ? QuestTheme.accent : QuestTheme.muted)
 
-            Text(settings.hasApiKey
-                 ? "Uses OpenAI voice (\(settings.ttsVoice)) for a natural museum guide. Falls back to on-device speech if needed."
-                 : "Add an OpenAI API key in Settings for a natural human-like museum voice.")
+            Text(settings.usesLocalLLM
+                 ? "Listen uses on-device speech with Local AI. Stories come from your Mac’s Gemma / LM Studio model."
+                 : (settings.hasApiKey
+                    ? "Uses OpenAI voice (\(settings.ttsVoice)) for a natural museum guide. Falls back to on-device speech if needed."
+                    : "Add an OpenAI API key in Settings for a natural human-like museum voice."))
                 .font(.caption2)
                 .foregroundStyle(QuestTheme.muted)
         }
@@ -116,7 +118,10 @@ struct BuildingHistoryView: View {
                 .stroke(QuestTheme.border, lineWidth: 1)
         )
         .onAppear {
-            narrator.configure(apiKey: settings.apiKey, voice: settings.ttsVoice)
+            narrator.configure(
+                apiKey: settings.usesLocalLLM ? "" : settings.apiKey,
+                voice: settings.ttsVoice
+            )
         }
     }
 
@@ -219,17 +224,19 @@ struct BuildingHistoryView: View {
     }
 
     private func load() async {
-        guard settings.hasApiKey else {
-            errorText = "Add an OpenAI API key in Settings to research this building."
+        guard settings.hasConfiguredLLM else {
+            errorText = settings.usesLocalLLM
+                ? "Configure Local LM Studio / Bionic in Settings."
+                : "Add an OpenAI API key in Settings to research this building."
             return
         }
         isLoading = true
         errorText = nil
         defer { isLoading = false }
         let pipeline = TourPipeline(
-            apiKey: settings.apiKey,
-            model: settings.model,
-            kidsMode: settings.kidsMode
+            client: settings.makeClient(),
+            kidsMode: settings.kidsMode,
+            usesLocalLLM: settings.usesLocalLLM
         )
         let tour = await pipeline.run(building: building, nearby: nearby)
         result = tour
@@ -248,7 +255,10 @@ struct BuildingHistoryView: View {
             narrator.statusMessage = "No narration text is available for this place yet."
             return
         }
-        narrator.configure(apiKey: settings.apiKey, voice: settings.ttsVoice)
+        narrator.configure(
+            apiKey: settings.usesLocalLLM ? "" : settings.apiKey,
+            voice: settings.ttsVoice
+        )
         narrator.speak(text)
     }
 }

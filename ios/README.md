@@ -17,7 +17,17 @@ Requires **Xcode 15.4+** (iOS 17 SDK) on a Mac.
 3. Signing & Capabilities → choose your **Team** (bundle id `com.guidedcitytour.ios`).
 4. Run on an iPhone / iPad, or the Simulator.
 
-An OpenAI API key is required to rank notable buildings and to generate stories. It is stored in the Keychain.
+An OpenAI API key **or** a local LM Studio / Bionic server is required to rank notable buildings and generate stories.
+
+### Local AI (LM Studio Bionic + Gemma)
+
+1. In **LM Studio** (or Bionic’s shared LM Studio runtime): load Gemma 4 and open **Developer → Start Server**.
+2. Default endpoint: `http://127.0.0.1:1234/v1`.
+3. In the iOS app: **Settings → AI provider → Local**.
+4. Paste the **exact model id** shown in LM Studio.
+5. **Simulator:** `127.0.0.1` works. **Physical iPhone:** use your Mac’s LAN IP (e.g. `http://192.168.1.20:1234/v1`) and enable **Serve on Local Network** in LM Studio.
+
+Local mode has no live web search — stories use the model’s knowledge with city-location checks. Listen falls back to on-device speech.
 
 ### Shared story cache (Supabase)
 

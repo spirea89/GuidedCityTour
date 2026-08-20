@@ -4,6 +4,12 @@ struct OpenAIClient {
     var apiKey: String
     var model: String
     var baseURL = "https://api.openai.com/v1"
+    var timeout: TimeInterval = 90
+
+    var isLocal: Bool {
+        let host = (URL(string: baseURL)?.host ?? "").lowercased()
+        return host == "127.0.0.1" || host == "localhost" || host.hasPrefix("192.168.") || host.hasPrefix("10.")
+    }
 
     func createResponse(
         instructions: String,
@@ -30,15 +36,19 @@ struct OpenAIClient {
     func createChatCompletion(
         messages: [[String: String]],
         temperature: Double = 0.4,
-        maxTokens: Int = 2000
+        maxTokens: Int = 2000,
+        forceJSON: Bool? = nil
     ) async -> Result<String, Error> {
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": model,
             "temperature": temperature,
             "max_tokens": maxTokens,
-            "messages": messages,
-            "response_format": ["type": "json_object"]
+            "messages": messages
         ]
+        let useJSON = forceJSON ?? !isLocal
+        if useJSON {
+            body["response_format"] = ["type": "json_object"]
+        }
         return await postJSON(path: "/chat/completions", body: body) { json in
             (((json["choices"] as? [[String: Any]])?.first?["message"] as? [String: Any])?["content"] as? String)
         }
@@ -75,7 +85,7 @@ struct OpenAIClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("audio/mpeg, application/octet-stream, application/json", forHTTPHeaderField: "Accept")
-        request.timeoutInterval = 90
+        request.timeoutInterval = timeout
 
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -105,8 +115,10 @@ struct OpenAIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 90
+        if !apiKey.isEmpty {
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
+        request.timeoutInterval = timeout
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -114,7 +126,7 @@ struct OpenAIClient {
             let json = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
             if !(200..<300).contains(code) {
                 let msg = ((json["error"] as? [String: Any])?["message"] as? String)
-                    ?? "OpenAI HTTP \(code)"
+                    ?? "LLM HTTP \(code)"
                 return .failure(OpenAIError.http(code, msg))
             }
             guard let text = extract(json), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {

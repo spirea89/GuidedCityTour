@@ -10,7 +10,7 @@ enum LandmarkDiscoveryError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingKey:
-            return "Add an OpenAI API key in Settings so the guide can pick the important buildings."
+            return "Configure an AI provider in Settings (OpenAI key, or Local LM Studio / Bionic)."
         case .noPlaces:
             return "No notable buildings were found for this area. Try a wider radius or another neighbourhood."
         case .noStoryPlaces:
@@ -22,19 +22,23 @@ enum LandmarkDiscoveryError: LocalizedError {
 }
 
 struct LandmarkDiscoveryService {
-    var apiKey: String
-    var model: String
+    var client: OpenAIClient
+    var usesLocalLLM: Bool
+    var kidsMode: Bool
 
     private let maxPins = 10
+
+    var model: String { client.model }
 
     func discover(
         center: CLLocationCoordinate2D,
         radius: Double,
-        areaLabel: String,
-        kidsMode: Bool
+        areaLabel: String
     ) async throws -> [GameBuilding] {
-        let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !key.isEmpty else { throw LandmarkDiscoveryError.missingKey }
+        if !usesLocalLLM {
+            let key = client.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty else { throw LandmarkDiscoveryError.missingKey }
+        }
 
         let areaKey = SupabaseCacheService.areaCacheKey(
             center: center,
@@ -52,7 +56,6 @@ struct LandmarkDiscoveryService {
         )) ?? []
         guard !osmLandmarks.isEmpty else { throw LandmarkDiscoveryError.noPlaces }
 
-        let client = OpenAIClient(apiKey: key, model: model)
         let input = userPrompt(
             center: center,
             radius: radius,
@@ -60,20 +63,9 @@ struct LandmarkDiscoveryService {
             candidates: osmLandmarks
         )
 
-        let withSearch = await client.createResponse(
-            instructions: Self.instructions,
-            input: input,
-            tools: [["type": "web_search"]],
-            temperature: 0.2,
-            maxOutputTokens: 1200
-        )
-
         let raw: String
-        switch withSearch {
-        case .success(let text):
-            raw = text
-        case .failure:
-            let fallback = await client.createChatCompletion(
+        if usesLocalLLM {
+            let local = await client.createChatCompletion(
                 messages: [
                     ["role": "system", "content": Self.instructions],
                     ["role": "user", "content": input]
@@ -81,11 +73,40 @@ struct LandmarkDiscoveryService {
                 temperature: 0.2,
                 maxTokens: 1200
             )
-            switch fallback {
+            switch local {
             case .success(let text):
                 raw = text
             case .failure(let error):
-                throw LandmarkDiscoveryError.failed(error.localizedDescription)
+                throw LandmarkDiscoveryError.failed(
+                    "Local LLM failed: \(error.localizedDescription). Is LM Studio server running on your Mac?"
+                )
+            }
+        } else {
+            let withSearch = await client.createResponse(
+                instructions: Self.instructions,
+                input: input,
+                tools: [["type": "web_search"]],
+                temperature: 0.2,
+                maxOutputTokens: 1200
+            )
+            switch withSearch {
+            case .success(let text):
+                raw = text
+            case .failure:
+                let fallback = await client.createChatCompletion(
+                    messages: [
+                        ["role": "system", "content": Self.instructions],
+                        ["role": "user", "content": input]
+                    ],
+                    temperature: 0.2,
+                    maxTokens: 1200
+                )
+                switch fallback {
+                case .success(let text):
+                    raw = text
+                case .failure(let error):
+                    throw LandmarkDiscoveryError.failed(error.localizedDescription)
+                }
             }
         }
 
@@ -105,11 +126,7 @@ struct LandmarkDiscoveryService {
         }
         if unique.isEmpty { throw LandmarkDiscoveryError.noPlaces }
 
-        let storyBacked = await filterStoryBackedPlaces(
-            unique,
-            apiKey: key,
-            kidsMode: kidsMode
-        )
+        let storyBacked = await filterStoryBackedPlaces(unique)
         if storyBacked.isEmpty { throw LandmarkDiscoveryError.noStoryPlaces }
 
         await SupabaseCacheService.saveAreaPlaces(
@@ -159,14 +176,12 @@ struct LandmarkDiscoveryService {
     }
 
     private func filterStoryBackedPlaces(
-        _ buildings: [GameBuilding],
-        apiKey: String,
-        kidsMode: Bool
+        _ buildings: [GameBuilding]
     ) async -> [GameBuilding] {
         let pipeline = TourPipeline(
-            apiKey: apiKey,
-            model: model,
-            kidsMode: kidsMode
+            client: client,
+            kidsMode: kidsMode,
+            usesLocalLLM: usesLocalLLM
         )
 
         var accepted: [GameBuilding] = []

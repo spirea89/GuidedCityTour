@@ -2,9 +2,11 @@ import Foundation
 import CoreLocation
 
 struct TourPipeline {
-    var apiKey: String
-    var model: String
+    var client: OpenAIClient
     var kidsMode: Bool
+    var usesLocalLLM: Bool
+
+    var model: String { client.model }
 
     func run(
         building: GameBuilding,
@@ -27,14 +29,65 @@ struct TourPipeline {
             return hit
         }
 
-        guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        let input = userPrompt(place: place, building: enriched)
+
+        if usesLocalLLM {
+            return await runLocal(place: place, enriched: enriched, cacheKey: cacheKey, input: input)
+        }
+
+        return await runOpenAI(place: place, enriched: enriched, cacheKey: cacheKey, input: input)
+    }
+
+    private func runLocal(
+        place: IdentifiedPlace,
+        enriched: GameBuilding,
+        cacheKey: String,
+        input: String
+    ) async -> TourResult {
+        let local = await client.createChatCompletion(
+            messages: [
+                ["role": "system", "content": Self.systemPrompt + "\n\n" + Self.localResearchDeveloperPrompt],
+                ["role": "user", "content": input]
+            ],
+            temperature: 0.2,
+            maxTokens: 2200
+        )
+
+        switch local {
+        case .success(let text):
+            var result = parse(text, fallbackPlace: place, researchAvailable: false)
+            result = enforceLocationIntegrity(result, building: enriched)
+            if result.status == .ok && !result.claims.verified.isEmpty {
+                TourCache.set(cacheKey, result)
+                await SupabaseCacheService.saveStory(
+                    cacheKey: cacheKey,
+                    building: enriched,
+                    result: result,
+                    kidsMode: kidsMode
+                )
+            } else if result.status == .noHistory {
+                await SupabaseCacheService.expireStory(cacheKey: cacheKey)
+            }
+            return result
+        case .failure(let error):
+            return TourResult.error(
+                "Local LLM failed: \(error.localizedDescription). Is LM Studio server running?",
+                place: place
+            )
+        }
+    }
+
+    private func runOpenAI(
+        place: IdentifiedPlace,
+        enriched: GameBuilding,
+        cacheKey: String,
+        input: String
+    ) async -> TourResult {
+        guard !client.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return TourResult.error("Add an OpenAI API key in Settings to research this building.", place: place)
         }
 
-        let client = OpenAIClient(apiKey: apiKey, model: model)
         let instructions = Self.systemPrompt + "\n\n" + Self.researchDeveloperPrompt
-        let input = userPrompt(place: place, building: building)
-
         let withSearch = await client.createResponse(
             instructions: instructions,
             input: input,
@@ -54,8 +107,6 @@ struct TourPipeline {
                     kidsMode: kidsMode
                 )
             } else if result.status == .noHistory {
-                // Expire any previously cached story for this key that may have
-                // passed a wrong-city source before the city-filter was in place.
                 await SupabaseCacheService.expireStory(cacheKey: cacheKey)
             }
             return result
@@ -492,5 +543,18 @@ struct TourPipeline {
     narration.adult may only describe OSM identity (name, type, tags) and clearly state that historical research was unavailable.
     Write both narrations in English.
     Output a single JSON object.
+    """
+
+    static let localResearchDeveloperPrompt = """
+    Mode: LOCAL MODEL RESEARCH (no live web search)
+    You are running on a local LLM (e.g. Gemma via LM Studio / Bionic).
+    Use only knowledge that is specifically about THIS building in THIS city.
+    If you only know a same-named building in another city, set status to "no_history".
+    For facts you are confident belong to this exact place, put them in claims.verified with sources like:
+      {"title":"Local model knowledge","url":"","publisher":"local","tier":"local"}
+    Mention the city name in each verified claim text.
+    Prefer fewer high-confidence local facts over mixing in details from other places.
+    Then write narration.adult / narration.kids / narration.sections from verified claims only.
+    Output a single JSON object matching the TourResponse schema.
     """
 }
