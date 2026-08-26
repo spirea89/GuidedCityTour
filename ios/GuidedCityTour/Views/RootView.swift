@@ -12,9 +12,9 @@ struct RootView: View {
                 OnboardingView()
             } else {
                 switch app.screen {
-                case .map:
-                    MapPickerView()
-                case .pins:
+                case .home:
+                    PhotoHomeView()
+                case .result:
                     LandmarkMapView()
                 }
             }
@@ -28,12 +28,9 @@ struct RootView: View {
             }
         }
         .onChange(of: location.coordinate?.latitude) { _, _ in
-            guard let coord = location.coordinate else { return }
-            if !app.didAutoCenterOnUser, app.screen == .map {
-                app.didAutoCenterOnUser = true
-                app.applyUserLocation(coord)
-                Task { await app.loadNearbyFromCache(coordinate: coord) }
-            }
+            guard let coord = location.coordinate, !app.didAutoCenterOnUser else { return }
+            app.didAutoCenterOnUser = true
+            app.applyUserLocation(coord)
         }
     }
 }

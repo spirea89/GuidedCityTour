@@ -1,16 +1,17 @@
 import Foundation
 import Observation
 import CoreLocation
+import UIKit
 
 enum AppScreen: Hashable {
-    case map
-    case pins
+    case home
+    case result
 }
 
 @MainActor
 @Observable
 final class AppModel {
-    var screen: AppScreen = .map
+    var screen: AppScreen = .home
     var selection: MapSelection?
     var buildings: [GameBuilding] = []
     var selectedBuilding: GameBuilding?
@@ -20,11 +21,8 @@ final class AppModel {
     var searchQuery = ""
     var searchError: String?
     var isSearching = false
-
-    /// Set when nearby cached buildings were loaded automatically on location fix.
     var nearbyFromCache = false
-    /// Set while the background nearby-cache lookup is running.
-    var isLoadingNearby = false
+    var capturedPhoto: UIImage?
 
     let defaultCenter = CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522)
     var pickerCenter = CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522)
@@ -47,36 +45,15 @@ final class AppModel {
     }
 
     func resetQuest() {
-        screen = .map
+        screen = .home
         selectedBuilding = nil
         buildings = []
         questUserCoordinate = nil
         loadError = nil
         loadMessage = ""
+        searchError = nil
         nearbyFromCache = false
-    }
-
-    /// Silently load nearby cached pins. Transitions to .pins if results found.
-    func loadNearbyFromCache(coordinate: CLLocationCoordinate2D) async {
-        guard !isLoadingNearby, !isLoadingBuildings else { return }
-        isLoadingNearby = true
-        defer { isLoadingNearby = false }
-
-        guard let nearby = await SupabaseCacheService.fetchNearbyAreaPlaces(
-            near: coordinate,
-            radiusMeters: 1200
-        ), !nearby.isEmpty else { return }
-
-        guard screen == .map else { return }
-        buildings = nearby
-        selection = MapSelection(
-            center: coordinate,
-            radiusMeters: 1200,
-            label: "Nearby cached places"
-        )
-        questUserCoordinate = coordinate
-        selectedBuilding = nil
-        nearbyFromCache = true
-        screen = .pins
+        capturedPhoto = nil
+        selection = nil
     }
 }

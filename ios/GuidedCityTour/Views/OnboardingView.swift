@@ -17,7 +17,7 @@ struct OnboardingView: View {
             .tabViewStyle(.page(indexDisplayMode: .always))
 
             Button(action: advance) {
-                Text(step == 2 ? "Enter the city" : "Continue")
+                Text(step == 2 ? "Start scanning" : "Continue")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -45,8 +45,8 @@ struct OnboardingView: View {
 
     private var welcomePage: some View {
         page(
-            title: "Walk a living map",
-            bodyText: "City Quest finds the most important buildings and monuments around you, pins them on the map, and tells their sourced history when you tap a pin."
+            title: "Photograph one landmark",
+            bodyText: "Take a photo of a building, church, or statue. City Quest uses your location and the image to identify that place and tell its history — one place at a time."
         )
     }
 
@@ -54,7 +54,7 @@ struct OnboardingView: View {
         VStack(spacing: 18) {
             page(
                 title: "Use your location",
-                bodyText: "We’ll center the map on you. You can always pan and choose a different neighbourhood to explore."
+                bodyText: "Your GPS and address help confirm the place in the photo is the local building — not a lookalike in another city."
             )
             Button("Allow location") {
                 location.requestWhenInUse()
@@ -70,7 +70,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 14) {
             page(
                 title: "AI provider (optional now)",
-                bodyText: "Use OpenAI in the cloud, or later switch to Local (LM Studio / Bionic + Gemma) in Settings to avoid API costs. You can skip and configure later."
+                bodyText: "OpenAI (vision) works best for photo ID. You can also try Local LM Studio / Bionic with a vision-capable Gemma model in Settings."
             )
             SecureField("sk-...", text: $keyDraft)
                 .textInputAutocapitalization(.never)

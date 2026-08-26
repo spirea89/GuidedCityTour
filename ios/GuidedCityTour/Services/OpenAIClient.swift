@@ -39,6 +39,24 @@ struct OpenAIClient {
         maxTokens: Int = 2000,
         forceJSON: Bool? = nil
     ) async -> Result<String, Error> {
+        let anyMessages: [[String: Any]] = messages.map { msg in
+            ["role": msg["role"] ?? "user", "content": msg["content"] ?? ""]
+        }
+        return await createChatCompletion(
+            messages: anyMessages,
+            temperature: temperature,
+            maxTokens: maxTokens,
+            forceJSON: forceJSON
+        )
+    }
+
+    /// Multimodal / text chat completions (supports image_url content parts).
+    func createChatCompletion(
+        messages: [[String: Any]],
+        temperature: Double = 0.4,
+        maxTokens: Int = 2000,
+        forceJSON: Bool? = nil
+    ) async -> Result<String, Error> {
         var body: [String: Any] = [
             "model": model,
             "temperature": temperature,

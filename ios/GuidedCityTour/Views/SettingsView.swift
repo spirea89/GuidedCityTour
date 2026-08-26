@@ -81,7 +81,10 @@ struct SettingsView: View {
                     Label("Shared story cache enabled", systemImage: "icloud.fill")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    Text("Stories and map pins are saved to a shared database so repeat visits skip AI calls for the same place.")
+                    Text("Stories are saved to a shared database so repeat visits skip AI calls for the same place.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text("Photograph one landmark. City Quest identifies that place from your photo and location, then tells its history.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

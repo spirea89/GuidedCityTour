@@ -24,6 +24,8 @@
 		AF34EC893C77FACD1E34CDA2 /* MuseumGuideNarrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 746DED54AEB95E51C0E5F4CB /* MuseumGuideNarrator.swift */; };
 		B2C3D4E5F60718293A4B5C6D /* PlaceNameMatching.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F60718293A4B5C6D7E /* PlaceNameMatching.swift */; };
 		D4E5F60718293A4B5C6D7E8F /* LLMProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F60718293A4B5C6D7E8F90 /* LLMProvider.swift */; };
+		F60718293A4B5C6D7E8F901A /* BuildingPhotoIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0718293A4B5C6D7E8F901A2B /* BuildingPhotoIdentifier.swift */; };
+		18293A4B5C6D7E8F901A2B3C /* PhotoHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 293A4B5C6D7E8F901A2B3C4D /* PhotoHomeView.swift */; };
 		0A50C4A70DD85493514A07EB /* BuildingHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54DB3D7B9CD353B113BA9AB1 /* BuildingHistoryView.swift */; };
 		3525B11ED0C311FA1A2C7607 /* LandmarkDiscoveryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68774D4A5040493CAF354C8D /* LandmarkDiscoveryService.swift */; };
 		28148BB7BE04DA33339D2E41 /* LandmarkMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E87300D5E5CF25B6AE67FBEA /* LandmarkMapView.swift */; };
@@ -53,6 +55,8 @@
 		746DED54AEB95E51C0E5F4CB /* MuseumGuideNarrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuseumGuideNarrator.swift; sourceTree = "<group>"; };
 		C3D4E5F60718293A4B5C6D7E /* PlaceNameMatching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceNameMatching.swift; sourceTree = "<group>"; };
 		E5F60718293A4B5C6D7E8F90 /* LLMProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProvider.swift; sourceTree = "<group>"; };
+		0718293A4B5C6D7E8F901A2B /* BuildingPhotoIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingPhotoIdentifier.swift; sourceTree = "<group>"; };
+		293A4B5C6D7E8F901A2B3C4D /* PhotoHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoHomeView.swift; sourceTree = "<group>"; };
 		68774D4A5040493CAF354C8D /* LandmarkDiscoveryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkDiscoveryService.swift; sourceTree = "<group>"; };
 		E87300D5E5CF25B6AE67FBEA /* LandmarkMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkMapView.swift; sourceTree = "<group>"; };
 		B621DE77DFF7D78CB32826C7 /* MapPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapPickerView.swift; sourceTree = "<group>"; };
@@ -108,6 +112,7 @@
 				746DED54AEB95E51C0E5F4CB /* MuseumGuideNarrator.swift */,
 				C3D4E5F60718293A4B5C6D7E /* PlaceNameMatching.swift */,
 				E5F60718293A4B5C6D7E8F90 /* LLMProvider.swift */,
+				0718293A4B5C6D7E8F901A2B /* BuildingPhotoIdentifier.swift */,
 				68774D4A5040493CAF354C8D /* LandmarkDiscoveryService.swift */,
 				F4456974E601FDED920F0A21 /* OverpassService.swift */,
 				871C6C0804A84E52D8A1E5CA /* SettingsStore.swift */,
@@ -127,6 +132,7 @@
 				B621DE77DFF7D78CB32826C7 /* MapPickerView.swift */,
 				E88EEFD85283152A18EA5FDA /* OnboardingView.swift */,
 				31C9EF36D5E561B4500076AF /* RootView.swift */,
+				293A4B5C6D7E8F901A2B3C4D /* PhotoHomeView.swift */,
 				D8A190201E6D76FCFD340ACF /* SettingsView.swift */,
 			);
 			path = Views;
@@ -147,6 +153,7 @@
 				AF34EC893C77FACD1E34CDA2 /* MuseumGuideNarrator.swift in Sources */,
 				B2C3D4E5F60718293A4B5C6D /* PlaceNameMatching.swift in Sources */,
 				D4E5F60718293A4B5C6D7E8F /* LLMProvider.swift in Sources */,
+				F60718293A4B5C6D7E8F901A /* BuildingPhotoIdentifier.swift in Sources */,
 				3525B11ED0C311FA1A2C7607 /* LandmarkDiscoveryService.swift in Sources */,
 				B54FAE7B55018103132A3D4C /* OverpassService.swift in Sources */,
 				A732919228173A6F07C3EBE2 /* SettingsStore.swift in Sources */,
@@ -346,7 +353,9 @@
 				INFOPLIST_FILE = GuidedCityTour/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "City Quest";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "City Quest uses your location to sketch the buildings around you into a game district.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "City Quest uses your location to confirm the building in your photo is the local one.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "City Quest needs the camera so you can photograph a building or statue to identify it.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "City Quest can use a photo from your library to identify a nearby landmark.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -381,7 +390,9 @@
 				INFOPLIST_FILE = GuidedCityTour/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "City Quest";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "City Quest uses your location to sketch the buildings around you into a game district.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "City Quest uses your location to confirm the building in your photo is the local one.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "City Quest needs the camera so you can photograph a building or statue to identify it.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "City Quest can use a photo from your library to identify a nearby landmark.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

@@ -4,9 +4,11 @@ Native SwiftUI companion to Guided City Tour. The web app stays as-is.
 
 ## What it does
 
-1. **Pick an area** on the map (GPS, search, or pan the crosshair) and set a radius.
-2. **Find notable places** — OpenAI (with web search when available) picks a short list of the most important buildings and monuments. Pins are placed with Photon geocoding, not a full building dump from Overpass.
-3. **Tap a pin** to start that place’s sourced history (identify → research → narrate).
+1. **Take a photo** of one building, church, monument, or statue (or pick from your library).
+2. The app uses **your GPS/address + the image** to identify that place (OpenAI vision, or a local vision-capable model).
+3. It returns **only that place**, opens its map pin, and generates the sourced history.
+
+There is no longer a multi-building neighbourhood scan.
 
 ## Open in Xcode
 
