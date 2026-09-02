@@ -1,0 +1,462 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0366047E1EAD5CC5EA2D8838 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A190201E6D76FCFD340ACF /* SettingsView.swift */; };
+		04A7814E4EEC70DE7D6C41B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8D562B3E40B6C9EC53F38F07 /* Assets.xcassets */; };
+		0A50C4A70DD85493514A07EB /* BuildingHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54DB3D7B9CD353B113BA9AB1 /* BuildingHistoryView.swift */; };
+		0AA36FB6E684938ED0668278 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0712DA5983C3011B96A994E7 /* LocationService.swift */; };
+		0DEA314B9C473E3C428CECA3 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E88EEFD85283152A18EA5FDA /* OnboardingView.swift */; };
+		0FEA76BABFE89B6E37678C57 /* TourModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB8B3597689751DAF1E9999A /* TourModels.swift */; };
+		14433D06FABC337FE89E8671 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 926BD2E6FAB1223B847F186C /* AppModel.swift */; };
+		162D836C7C50E6AD190F4643 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C9EF36D5E561B4500076AF /* RootView.swift */; };
+		18293A4B5C6D7E8F901A2B3C /* PhotoHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 293A4B5C6D7E8F901A2B3C4D /* PhotoHomeView.swift */; };
+		24C6CDCA912CBD1DA9D9B642 /* Geo.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC059C942F540CB7B5ACD6A0 /* Geo.swift */; };
+		28148BB7BE04DA33339D2E41 /* LandmarkMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E87300D5E5CF25B6AE67FBEA /* LandmarkMapView.swift */; };
+		33DBD439E201A8CC28EEEA61 /* OpenAIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD164932A7F84C43E30EBCF6 /* OpenAIClient.swift */; };
+		55A811792DEBE5FE55886521 /* TourPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FC749A1441AE4DF7C5DF49F /* TourPipeline.swift */; };
+		596AE45DF05B856AFA0A5D70 /* TourCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D41048D2B2628DBE03ADF89 /* TourCache.swift */; };
+		768EF4E0F8DE94D51182D7EF /* GeocoderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E63BC5D46CA00175CF51ACE9 /* GeocoderService.swift */; };
+		7C1A2B3D4E5F60718293A4B5 /* SupabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D2E3F4A5B6C708192A3B4C5 /* SupabaseConfig.swift */; };
+		838086257F85A3779D3875E5 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDDE7558A6403A54860ADEA3 /* Theme.swift */; };
+		977EF094A3D4325A84280A07 /* GuidedCityTourApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B1412E1F93B3B763F6C60AD /* GuidedCityTourApp.swift */; };
+		9E3F4A5B6C7D8091A2B3C4D5 /* SupabaseCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A3B4C5 /* SupabaseCacheService.swift */; };
+		A732919228173A6F07C3EBE2 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 871C6C0804A84E52D8A1E5CA /* SettingsStore.swift */; };
+		A9D8DE48EEB28EAEA73AE26F /* GameBuilding.swift in Sources */ = {isa = PBXBuildFile; fileRef = C51F086EF9A02B59BCEC23BF /* GameBuilding.swift */; };
+		AF34EC893C77FACD1E34CDA2 /* MuseumGuideNarrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 746DED54AEB95E51C0E5F4CB /* MuseumGuideNarrator.swift */; };
+		B2C3D4E5F60718293A4B5C6D /* PlaceNameMatching.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F60718293A4B5C6D7E /* PlaceNameMatching.swift */; };
+		B54FAE7B55018103132A3D4C /* OverpassService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4456974E601FDED920F0A21 /* OverpassService.swift */; };
+		D4E5F60718293A4B5C6D7E8F /* LLMProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F60718293A4B5C6D7E8F90 /* LLMProvider.swift */; };
+		F60718293A4B5C6D7E8F901A /* BuildingPhotoIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0718293A4B5C6D7E8F901A2B /* BuildingPhotoIdentifier.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0712DA5983C3011B96A994E7 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		0718293A4B5C6D7E8F901A2B /* BuildingPhotoIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingPhotoIdentifier.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F708192A3B4C5 /* SupabaseCacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseCacheService.swift; sourceTree = "<group>"; };
+		1B1412E1F93B3B763F6C60AD /* GuidedCityTourApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuidedCityTourApp.swift; sourceTree = "<group>"; };
+		1FC749A1441AE4DF7C5DF49F /* TourPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TourPipeline.swift; sourceTree = "<group>"; };
+		293A4B5C6D7E8F901A2B3C4D /* PhotoHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoHomeView.swift; sourceTree = "<group>"; };
+		31C9EF36D5E561B4500076AF /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		54DB3D7B9CD353B113BA9AB1 /* BuildingHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingHistoryView.swift; sourceTree = "<group>"; };
+		68774D4A5040493CAF354C8D /* LandmarkDiscoveryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkDiscoveryService.swift; sourceTree = "<group>"; };
+		6D41048D2B2628DBE03ADF89 /* TourCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TourCache.swift; sourceTree = "<group>"; };
+		746DED54AEB95E51C0E5F4CB /* MuseumGuideNarrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuseumGuideNarrator.swift; sourceTree = "<group>"; };
+		871C6C0804A84E52D8A1E5CA /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		8D2E3F4A5B6C708192A3B4C5 /* SupabaseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
+		8D562B3E40B6C9EC53F38F07 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		926BD2E6FAB1223B847F186C /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		B621DE77DFF7D78CB32826C7 /* MapPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapPickerView.swift; sourceTree = "<group>"; };
+		BDDE7558A6403A54860ADEA3 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		C3D4E5F60718293A4B5C6D7E /* PlaceNameMatching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceNameMatching.swift; sourceTree = "<group>"; };
+		C51F086EF9A02B59BCEC23BF /* GameBuilding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameBuilding.swift; sourceTree = "<group>"; };
+		D8A190201E6D76FCFD340ACF /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		DD164932A7F84C43E30EBCF6 /* OpenAIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIClient.swift; sourceTree = "<group>"; };
+		E5F60718293A4B5C6D7E8F90 /* LLMProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProvider.swift; sourceTree = "<group>"; };
+		E63BC5D46CA00175CF51ACE9 /* GeocoderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeocoderService.swift; sourceTree = "<group>"; };
+		E87300D5E5CF25B6AE67FBEA /* LandmarkMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkMapView.swift; sourceTree = "<group>"; };
+		E88EEFD85283152A18EA5FDA /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		F4456974E601FDED920F0A21 /* OverpassService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverpassService.swift; sourceTree = "<group>"; };
+		F5BF48AA40CAD7891EB709FC /* GuidedCityTour.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GuidedCityTour.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FB8B3597689751DAF1E9999A /* TourModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TourModels.swift; sourceTree = "<group>"; };
+		FC059C942F540CB7B5ACD6A0 /* Geo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geo.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A6E8E7DF88D31078DBF4E18B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		30772F61AC9BDC8631745269 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F5BF48AA40CAD7891EB709FC /* GuidedCityTour.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		71D2E56247FE75C3DCE9B609 = {
+			isa = PBXGroup;
+			children = (
+				CC0F851F1418F89420454479 /* GuidedCityTour */,
+				30772F61AC9BDC8631745269 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		9C035E7454E6255EF4EA445C /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				926BD2E6FAB1223B847F186C /* AppModel.swift */,
+				E63BC5D46CA00175CF51ACE9 /* GeocoderService.swift */,
+				0712DA5983C3011B96A994E7 /* LocationService.swift */,
+				DD164932A7F84C43E30EBCF6 /* OpenAIClient.swift */,
+				746DED54AEB95E51C0E5F4CB /* MuseumGuideNarrator.swift */,
+				C3D4E5F60718293A4B5C6D7E /* PlaceNameMatching.swift */,
+				E5F60718293A4B5C6D7E8F90 /* LLMProvider.swift */,
+				0718293A4B5C6D7E8F901A2B /* BuildingPhotoIdentifier.swift */,
+				68774D4A5040493CAF354C8D /* LandmarkDiscoveryService.swift */,
+				F4456974E601FDED920F0A21 /* OverpassService.swift */,
+				871C6C0804A84E52D8A1E5CA /* SettingsStore.swift */,
+				6D41048D2B2628DBE03ADF89 /* TourCache.swift */,
+				8D2E3F4A5B6C708192A3B4C5 /* SupabaseConfig.swift */,
+				1A2B3C4D5E6F708192A3B4C5 /* SupabaseCacheService.swift */,
+				1FC749A1441AE4DF7C5DF49F /* TourPipeline.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		9F58BDF7D4F04F6C4DC3CB6C /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				54DB3D7B9CD353B113BA9AB1 /* BuildingHistoryView.swift */,
+				E87300D5E5CF25B6AE67FBEA /* LandmarkMapView.swift */,
+				B621DE77DFF7D78CB32826C7 /* MapPickerView.swift */,
+				E88EEFD85283152A18EA5FDA /* OnboardingView.swift */,
+				31C9EF36D5E561B4500076AF /* RootView.swift */,
+				293A4B5C6D7E8F901A2B3C4D /* PhotoHomeView.swift */,
+				D8A190201E6D76FCFD340ACF /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		C9E04F99D8E7C9D4D391AEF8 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				C51F086EF9A02B59BCEC23BF /* GameBuilding.swift */,
+				FC059C942F540CB7B5ACD6A0 /* Geo.swift */,
+				FB8B3597689751DAF1E9999A /* TourModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		CC0F851F1418F89420454479 /* GuidedCityTour */ = {
+			isa = PBXGroup;
+			children = (
+				1B1412E1F93B3B763F6C60AD /* GuidedCityTourApp.swift */,
+				BDDE7558A6403A54860ADEA3 /* Theme.swift */,
+				C9E04F99D8E7C9D4D391AEF8 /* Models */,
+				9C035E7454E6255EF4EA445C /* Services */,
+				9F58BDF7D4F04F6C4DC3CB6C /* Views */,
+				8D562B3E40B6C9EC53F38F07 /* Assets.xcassets */,
+			);
+			path = GuidedCityTour;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		42AEFBAE01D2DFD981F7DA7D /* GuidedCityTour */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4B2258F4F5A14B12A12C25D0 /* Build configuration list for PBXNativeTarget "GuidedCityTour" */;
+			buildPhases = (
+				65FA6119905E087A5E53253D /* Sources */,
+				A6E8E7DF88D31078DBF4E18B /* Frameworks */,
+				7997A58CB6F97DD5FFDE7900 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GuidedCityTour;
+			productName = GuidedCityTour;
+			productReference = F5BF48AA40CAD7891EB709FC /* GuidedCityTour.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		46F86FAA6BBF9AC94A7E4595 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					42AEFBAE01D2DFD981F7DA7D = {
+						CreatedOnToolsVersion = 15.4;
+					};
+				};
+			};
+			buildConfigurationList = 83F74AB4E1F893805B250CC8 /* Build configuration list for PBXProject "GuidedCityTour" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 71D2E56247FE75C3DCE9B609;
+			productRefGroup = 30772F61AC9BDC8631745269 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				42AEFBAE01D2DFD981F7DA7D /* GuidedCityTour */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		7997A58CB6F97DD5FFDE7900 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04A7814E4EEC70DE7D6C41B1 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		65FA6119905E087A5E53253D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				977EF094A3D4325A84280A07 /* GuidedCityTourApp.swift in Sources */,
+				A9D8DE48EEB28EAEA73AE26F /* GameBuilding.swift in Sources */,
+				24C6CDCA912CBD1DA9D9B642 /* Geo.swift in Sources */,
+				0FEA76BABFE89B6E37678C57 /* TourModels.swift in Sources */,
+				14433D06FABC337FE89E8671 /* AppModel.swift in Sources */,
+				768EF4E0F8DE94D51182D7EF /* GeocoderService.swift in Sources */,
+				0AA36FB6E684938ED0668278 /* LocationService.swift in Sources */,
+				33DBD439E201A8CC28EEEA61 /* OpenAIClient.swift in Sources */,
+				AF34EC893C77FACD1E34CDA2 /* MuseumGuideNarrator.swift in Sources */,
+				B2C3D4E5F60718293A4B5C6D /* PlaceNameMatching.swift in Sources */,
+				D4E5F60718293A4B5C6D7E8F /* LLMProvider.swift in Sources */,
+				F60718293A4B5C6D7E8F901A /* BuildingPhotoIdentifier.swift in Sources */,
+				B54FAE7B55018103132A3D4C /* OverpassService.swift in Sources */,
+				A732919228173A6F07C3EBE2 /* SettingsStore.swift in Sources */,
+				596AE45DF05B856AFA0A5D70 /* TourCache.swift in Sources */,
+				7C1A2B3D4E5F60718293A4B5 /* SupabaseConfig.swift in Sources */,
+				9E3F4A5B6C7D8091A2B3C4D5 /* SupabaseCacheService.swift in Sources */,
+				55A811792DEBE5FE55886521 /* TourPipeline.swift in Sources */,
+				838086257F85A3779D3875E5 /* Theme.swift in Sources */,
+				0A50C4A70DD85493514A07EB /* BuildingHistoryView.swift in Sources */,
+				28148BB7BE04DA33339D2E41 /* LandmarkMapView.swift in Sources */,
+				0DEA314B9C473E3C428CECA3 /* OnboardingView.swift in Sources */,
+				162D836C7C50E6AD190F4643 /* RootView.swift in Sources */,
+				18293A4B5C6D7E8F901A2B3C /* PhotoHomeView.swift in Sources */,
+				0366047E1EAD5CC5EA2D8838 /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0AED07983CCBB30813FDF413 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XZ7C7ZLF7K;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GuidedCityTour/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "City Quest";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
+				INFOPLIST_KEY_NSCameraUsageDescription = "City Quest needs the camera so you can photograph a building or statue to identify it.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "City Quest uses your location to confirm the building in your photo is the local one.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "City Quest can use a photo from your library to identify a nearby landmark.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 3.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.guidedcitytour.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = targeted;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		50FBB95BAD445265B35D2CA0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		9B5F5A4DABB8998ACDC1585D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XZ7C7ZLF7K;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GuidedCityTour/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "City Quest";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
+				INFOPLIST_KEY_NSCameraUsageDescription = "City Quest needs the camera so you can photograph a building or statue to identify it.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "City Quest uses your location to confirm the building in your photo is the local one.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "City Quest can use a photo from your library to identify a nearby landmark.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 3.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.guidedcitytour.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = targeted;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		D73A57BB0448FDD59F968F39 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4B2258F4F5A14B12A12C25D0 /* Build configuration list for PBXNativeTarget "GuidedCityTour" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0AED07983CCBB30813FDF413 /* Debug */,
+				9B5F5A4DABB8998ACDC1585D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		83F74AB4E1F893805B250CC8 /* Build configuration list for PBXProject "GuidedCityTour" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D73A57BB0448FDD59F968F39 /* Debug */,
+				50FBB95BAD445265B35D2CA0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+}

@@ -6,6 +6,8 @@ A static map app for exploring locations and generating **grounded** guided-tour
 
 **On-page version:** look for **`v2.2.4`** in the header badge and side-panel footer. After a deploy, hard-refresh if the version does not match - GitHub Pages can serve a cached older build briefly.
 
+**iOS (City Quest):** native SwiftUI app in [`ios/`](ios/README.md). Pick a map area, pin the most important buildings and monuments (OpenAI-ranked), tap a pin for the same sourced history pipeline. Open `ios/GuidedCityTour.xcodeproj` in Xcode 15.4+ (iOS 17).
+
 ## Architecture (v2.1+)
 
 Hallucination-resistant AI layer: the LLM is a **narration/reasoning engine**, not the source of truth. Pipeline:

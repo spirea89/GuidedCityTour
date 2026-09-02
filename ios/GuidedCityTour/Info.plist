@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSCameraUsageDescription</key>
+	<string>City Quest needs the camera so you can photograph a building or statue to identify it.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>City Quest can use a photo from your library to identify a nearby landmark.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>City Quest can use a local LM Studio / Bionic server on your Mac for offline AI.</string>
+</dict>
+</plist>

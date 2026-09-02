@@ -1,6 +1,6 @@
 # Supabase shared research cache
 
-**Status:** Designed + client adapter stub (`SupabaseCache` in `js/services/CacheService.js`). Not wired in production until Worker holds credentials.
+**Status:** Wired for project `ifoybmzofjdgekvvrsot`. Publishable key is embedded in iOS + web clients. Run SQL in `supabase/migrations/` once.
 
 **Why:** IndexedDB is **device-local**. The next visitor to Stephansdom should reuse verified facts, not pay for another web_search. Supabase stores **verified research payloads** once per place (plus category/kids variants via cache key).
 
@@ -11,9 +11,38 @@
 1. Cache **verified, validated** tour results only (`status === "ok"` with non-empty `claims.verified`).
 2. Never store API keys or raw user prompts with PII beyond place name + coords.
 3. Prefer **Worker → Supabase service role** for writes; browser anon key only with strict RLS (read public cache, no arbitrary writes) — or no browser Supabase at all.
-4. Leave `SUPABASE.url` / `SUPABASE.anonKey` empty in the repo (`js/config.js`).
+4. Ship the **publishable** key in client code; never commit the **service-role** key.
 
 ---
+
+## Table: `place_research`
+
+Stories / verified tour JSON per building cache key.
+
+## Table: `area_locations`
+
+Notable pins for a map area (center, radius, label). Columns include `places` (JSON array of pin metadata) and the same TTL / cache-key pattern as stories.
+
+```sql
+create table if not exists public.area_locations (
+  id uuid primary key default gen_random_uuid(),
+  cache_key text not null unique,
+  center_lat numeric(10, 5) not null,
+  center_lng numeric(10, 5) not null,
+  radius_meters integer not null,
+  area_label text,
+  places jsonb not null default '[]'::jsonb,
+  pipeline_version text not null,
+  model text,
+  researched_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  hit_count integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+```
+
+Full migration: [`supabase/migrations/20260819000000_initial_schema.sql`](../../supabase/migrations/20260819000000_initial_schema.sql).
 
 ## Table: `place_research`
 
