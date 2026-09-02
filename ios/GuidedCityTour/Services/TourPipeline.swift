@@ -59,14 +59,9 @@ struct TourPipeline {
             result = enforceLocationIntegrity(result, building: enriched)
             if result.status == .ok && !result.claims.verified.isEmpty {
                 TourCache.set(cacheKey, result)
-                await SupabaseCacheService.saveStory(
-                    cacheKey: cacheKey,
-                    building: enriched,
-                    result: result,
-                    kidsMode: kidsMode
-                )
+                persistInBackground(cacheKey: cacheKey, building: enriched, result: result)
             } else if result.status == .noHistory {
-                await SupabaseCacheService.expireStory(cacheKey: cacheKey)
+                expireInBackground(cacheKey: cacheKey)
             }
             return result
         case .failure(let error):
@@ -91,7 +86,9 @@ struct TourPipeline {
         let withSearch = await client.createResponse(
             instructions: instructions,
             input: input,
-            tools: [["type": "web_search"]]
+            tools: [["type": "web_search"]],
+            temperature: 0.1,
+            maxOutputTokens: 1400
         )
 
         switch withSearch {
@@ -100,14 +97,9 @@ struct TourPipeline {
             result = enforceLocationIntegrity(result, building: enriched)
             if result.status == .ok && !result.claims.verified.isEmpty {
                 TourCache.set(cacheKey, result)
-                await SupabaseCacheService.saveStory(
-                    cacheKey: cacheKey,
-                    building: enriched,
-                    result: result,
-                    kidsMode: kidsMode
-                )
+                persistInBackground(cacheKey: cacheKey, building: enriched, result: result)
             } else if result.status == .noHistory {
-                await SupabaseCacheService.expireStory(cacheKey: cacheKey)
+                expireInBackground(cacheKey: cacheKey)
             }
             return result
         case .failure:
@@ -126,6 +118,24 @@ struct TourPipeline {
             return parse(text, fallbackPlace: place, researchAvailable: false)
         case .failure(let error):
             return TourResult.error(error.localizedDescription, place: place)
+        }
+    }
+
+    private func persistInBackground(cacheKey: String, building: GameBuilding, result: TourResult) {
+        let isKids = kidsMode
+        Task(priority: .utility) {
+            await SupabaseCacheService.saveStory(
+                cacheKey: cacheKey,
+                building: building,
+                result: result,
+                kidsMode: isKids
+            )
+        }
+    }
+
+    private func expireInBackground(cacheKey: String) {
+        Task(priority: .utility) {
+            await SupabaseCacheService.expireStory(cacheKey: cacheKey)
         }
     }
 
@@ -268,7 +278,7 @@ struct TourPipeline {
         Nearby allow-list (ONLY these may be called nearby):
         \(nearbyText)
 
-        Categories: history, architecture, famous_people, interesting_facts, today
+        Content: a concise factual history only. Include at most 5 strong facts.
         Kids mode: \(kidsMode ? "true" : "false")
         Research mode: web_search
         Language: English — write narration.adult, narration.kids, and narration.sections in English.
@@ -512,10 +522,10 @@ struct TourPipeline {
     HARD RULES
     1. Never invent dates, people, events, architectural attributions, or nearby landmarks.
     2. "Nearby / adjacent / a short walk" ONLY for names on the OSM allow-list.
-    3. Adult narration may use verified claims freely, and may include a clearly labeled "Legends & local stories" section only from claims.legends.
+    3. Adult narration may use verified claims only.
     4. Kids narration: verified claims only; simpler language; no invented stories.
     5. Write ALL narration text in English. Proper nouns may stay local.
-    6. Category sections must contain ONLY verified facts for that topic.
+    6. Keep adult narration under 180 words and kids narration under 140 words.
     7. Output MUST be a single JSON object. No markdown fences.
     8. If web search is unavailable, do not fill verified claims from model memory.
 
@@ -535,14 +545,14 @@ struct TourPipeline {
     IMPORTANT: Search using the building name AND its city together (see LOCATION LOCK in the prompt).
     A source is only accepted if it explicitly mentions the building's city/town in its title, URL, or content.
     Sources that do not mention the city must go to claims.uncertain, not claims.verified.
-    Extract claims into verified | uncertain | legends | unknown.
+    Return at most 5 verified historical claims. Do not research separate architecture,
+    personalities, trivia, or current-use topics unless essential to the building's history.
     Every verified claim MUST include at least one city-confirmed source {title,url,publisher,tier}.
-    Then write narration.adult ONLY from verified (+ labeled legends section).
-    Fill narration.sections for history, architecture, famous_people, interesting_facts, today when evidence exists.
-    Omit empty sections rather than inventing content.
+    Then write one concise narration.adult and one concise narration.kids from verified claims.
+    Set narration.sections to {} to avoid duplicating the same material.
 
     SCHEMA:
-    {"status":"ok|no_history|web_search_unavailable|error","message":"","place":{"name":"","entity_type":"","lat":0,"lng":0},"claims":{"verified":[{"text":"","category":"history","confidence":0.8,"sources":[{"title":"","url":"","publisher":"","tier":"official"}]}],"uncertain":[],"legends":[],"unknown":[]},"narration":{"adult":"","kids":"","sections":{"history":"","architecture":"","famous_people":"","interesting_facts":"","today":""}},"citations":[{"title":"","url":"","publisher":"","tier":"official"}]}
+    {"status":"ok|no_history|web_search_unavailable|error","message":"","place":{"name":"","entity_type":"","lat":0,"lng":0},"claims":{"verified":[{"text":"","category":"history","confidence":0.8,"sources":[{"title":"","url":"","publisher":"","tier":"official"}]}],"uncertain":[],"legends":[],"unknown":[]},"narration":{"adult":"","kids":"","sections":{}},"citations":[{"title":"","url":"","publisher":"","tier":"official"}]}
     """
 
     static let degradedDeveloperPrompt = """

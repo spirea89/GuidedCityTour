@@ -104,7 +104,7 @@ enum SupabaseCacheService {
             "lng": roundCoord(building.coordinate.longitude),
             "name_normalized": String(nameSlug),
             "entity_type": building.entityType.rawValue,
-            "categories": ["architecture", "famous_people", "history", "interesting_facts", "today"],
+            "categories": ["history"],
             "kids_mode": kidsMode,
             "verified_payload": payload,
             "sources": encodeJSONArray(result.citations),
@@ -246,6 +246,7 @@ enum SupabaseCacheService {
         }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
+        request.timeoutInterval = 4
         applyHeaders(&request)
 
         do {

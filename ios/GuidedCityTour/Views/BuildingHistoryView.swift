@@ -153,30 +153,6 @@ struct BuildingHistoryView: View {
                 .lineSpacing(4)
         }
 
-        let order = ["history", "architecture", "famous_people", "interesting_facts", "today"]
-        let titles = [
-            "history": "History",
-            "architecture": "Architecture",
-            "famous_people": "Personalities",
-            "interesting_facts": "Interesting facts",
-            "today": "Today"
-        ]
-        if !settings.kidsMode {
-            ForEach(order, id: \.self) { key in
-                if let section = result.narration.sections[key], !section.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(titles[key] ?? key)
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(QuestTheme.accent)
-                            .textCase(.uppercase)
-                        Text(section)
-                            .font(.callout)
-                            .lineSpacing(3)
-                    }
-                }
-            }
-        }
-
         if !result.claims.verified.isEmpty {
             Text("\(result.claims.verified.count) verified claims")
                 .font(.caption)

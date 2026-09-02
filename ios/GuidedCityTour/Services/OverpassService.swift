@@ -22,8 +22,7 @@ struct OverpassService: Sendable {
 
     private let endpoints = [
         "https://overpass.kumi.systems/api/interpreter",
-        "https://overpass-api.de/api/interpreter",
-        "https://overpass.private.coffee/api/interpreter"
+        "https://overpass-api.de/api/interpreter"
     ]
 
     private let userAgent = "GuidedCityTour-iOS/3.0 (https://github.com/spirea89/GuidedCityTour)"
@@ -103,7 +102,7 @@ struct OverpassService: Sendable {
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 16
+        request.timeoutInterval = 6
 
         let (data, response) = try await URLSession.shared.data(for: request)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
@@ -226,7 +225,7 @@ struct OverpassService: Sendable {
     private static func namedLandmarkQuery(lat: Double, lng: Double, radius: Double) -> String {
         let r = Int(min(max(radius, 80), 1200).rounded())
         return """
-        [out:json][timeout:14];
+        [out:json][timeout:5];
         (
           nwr["name"]["tourism"](around:\(r),\(lat),\(lng));
           nwr["name"]["historic"](around:\(r),\(lat),\(lng));

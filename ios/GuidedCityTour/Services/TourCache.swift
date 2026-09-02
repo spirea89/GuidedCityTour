@@ -15,19 +15,19 @@ enum TourCache {
         let nameSlug = building.displayName.lowercased()
             .replacingOccurrences(of: "[^a-z0-9]+", with: "-", options: .regularExpression)
             .prefix(48)
-        let kidsFlag = kids ? "1" : "0"
-        let cats = "architecture,famous_people,history,interesting_facts,today"
+        let presentation = "adult-and-kids"
+        let cats = "history"
         let focus = building.isLandmark ? "landmark" : "house"
         let version = AppIdentity.pipelineVersion
 
         if let osmId = building.osmId {
             let placeId = "\(building.osmType ?? "way")/\(osmId)"
-            return "gct:v\(version):id:\(placeId):\(focus):\(cats):\(kidsFlag)"
+            return "gct:v\(version):id:\(placeId):\(focus):\(cats):\(presentation)"
         }
         if !nameSlug.isEmpty {
-            return "gct:v\(version):\(lat):\(lng):\(nameSlug):\(focus):\(cats):\(kidsFlag)"
+            return "gct:v\(version):\(lat):\(lng):\(nameSlug):\(focus):\(cats):\(presentation)"
         }
-        return "gct:v\(version):\(lat):\(lng):\(focus):\(cats):\(kidsFlag)"
+        return "gct:v\(version):\(lat):\(lng):\(focus):\(cats):\(presentation)"
     }
 
     static func get(_ key: String) -> TourResult? {

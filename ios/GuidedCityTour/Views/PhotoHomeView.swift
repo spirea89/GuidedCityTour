@@ -116,7 +116,7 @@ struct PhotoHomeView: View {
             }
             .fullScreenCover(isPresented: $showCamera) {
                 CameraPicker { image in
-                    previewImage = image
+                    previewImage = preparePhoto(image)
                     Task { await identifyFromPhoto() }
                 }
                 .ignoresSafeArea()
@@ -127,7 +127,7 @@ struct PhotoHomeView: View {
                     if let data = try? await item.loadTransferable(type: Data.self),
                        let image = UIImage(data: data)
                     {
-                        previewImage = image
+                        previewImage = preparePhoto(image)
                         await identifyFromPhoto()
                     }
                 }
@@ -214,7 +214,14 @@ struct PhotoHomeView: View {
         app.loadMessage = "Reading the photo and matching nearby landmarks…"
         defer { app.isLoadingBuildings = false }
 
-        let reverse = try? await GeocoderService.reverse(coordinate: coord)
+        async let reverseLookup = try? GeocoderService.reverse(coordinate: coord)
+        async let nearbyLookup = try? OverpassService.shared.fetchNamedLandmarks(
+            center: coord,
+            radius: 250
+        )
+        let (reverseResult, nearbyResult) = await (reverseLookup, nearbyLookup)
+        let reverse = reverseResult ?? nil
+        let nearbyCandidates = nearbyResult ?? []
         if let reverse {
             areaLabel = reverse.displayName
         }
@@ -229,7 +236,8 @@ struct PhotoHomeView: View {
                 image: previewImage,
                 coordinate: coord,
                 areaLabel: label,
-                locationTags: reverse?.addressTags ?? [:]
+                locationTags: reverse?.addressTags ?? [:],
+                nearbyCandidates: nearbyCandidates
             )
             app.buildings = [building]
             app.selectedBuilding = building
@@ -241,6 +249,17 @@ struct PhotoHomeView: View {
         } catch {
             app.loadError = error.localizedDescription
             app.searchError = error.localizedDescription
+        }
+    }
+
+    private func preparePhoto(_ image: UIImage) -> UIImage {
+        let maxSide: CGFloat = 1600
+        let longest = max(image.size.width, image.size.height)
+        guard longest > maxSide else { return image }
+        let scale = maxSide / longest
+        let target = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        return UIGraphicsImageRenderer(size: target).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: target))
         }
     }
 }

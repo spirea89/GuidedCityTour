@@ -32,17 +32,23 @@ struct BuildingPhotoIdentifier {
         image: UIImage,
         coordinate: CLLocationCoordinate2D,
         areaLabel: String,
-        locationTags: [String: String] = [:]
+        locationTags: [String: String] = [:],
+        nearbyCandidates: [GameBuilding]? = nil
     ) async throws -> GameBuilding {
         guard let jpeg = Self.jpegData(from: image) else {
             throw BuildingPhotoIdentifierError.noImage
         }
         let base64 = jpeg.base64EncodedString()
 
-        let osmCandidates = (try? await OverpassService.shared.fetchNamedLandmarks(
-            center: coordinate,
-            radius: nearbyRadius
-        )) ?? []
+        let osmCandidates: [GameBuilding]
+        if let nearbyCandidates {
+            osmCandidates = nearbyCandidates
+        } else {
+            osmCandidates = (try? await OverpassService.shared.fetchNamedLandmarks(
+                center: coordinate,
+                radius: nearbyRadius
+            )) ?? []
+        }
 
         let prompt = userPrompt(
             coordinate: coordinate,
@@ -81,7 +87,7 @@ struct BuildingPhotoIdentifier {
         let result = await visionClient.createChatCompletion(
             messages: messages,
             temperature: 0.1,
-            maxTokens: 900,
+            maxTokens: 500,
             forceJSON: true
         )
 
@@ -185,7 +191,7 @@ struct BuildingPhotoIdentifier {
         if candidates.isEmpty {
             candidateList = "(No OpenStreetMap candidates within \(Int(nearbyRadius)) m — identify from the photo + address only.)"
         } else {
-            candidateList = candidates.prefix(20).map { building in
+            candidateList = candidates.prefix(10).map { building in
                 let dist = Int(Geo.haversineMeters(coordinate, building.coordinate).rounded())
                 return "- id: \(building.id)\n  name: \(building.displayName)\n  type: \(building.typeLabel)\n  distance_m: \(dist)"
             }.joined(separator: "\n")
@@ -258,7 +264,7 @@ struct BuildingPhotoIdentifier {
     }
 
     private static func jpegData(from image: UIImage) -> Data? {
-        let maxSide: CGFloat = 1280
+        let maxSide: CGFloat = 960
         let size = image.size
         let scale = min(1, maxSide / max(size.width, size.height))
         let target = CGSize(width: size.width * scale, height: size.height * scale)
@@ -266,7 +272,7 @@ struct BuildingPhotoIdentifier {
         let resized = renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: target))
         }
-        return resized.jpegData(compressionQuality: 0.72)
+        return resized.jpegData(compressionQuality: 0.62)
     }
 
     private static func entity(from type: String) -> EntityType {
