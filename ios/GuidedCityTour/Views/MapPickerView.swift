@@ -231,7 +231,7 @@ struct MapPickerView: View {
             app.selection = MapSelection(center: center, radiusMeters: radius, label: label)
             app.questUserCoordinate = location.coordinate
             app.selectedBuilding = nil
-            app.screen = .pins
+            app.screen = .result
         } catch {
             app.loadError = error.localizedDescription
             app.searchError = error.localizedDescription
