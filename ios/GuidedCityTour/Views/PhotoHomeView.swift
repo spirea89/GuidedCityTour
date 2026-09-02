@@ -36,6 +36,16 @@ struct PhotoHomeView: View {
                         .foregroundStyle(QuestTheme.accent)
                 }
 
+                Toggle(isOn: Binding(
+                    get: { settings.kidsMode },
+                    set: { settings.kidsMode = $0 }
+                )) {
+                    Label("Kids mode", systemImage: "figure.and.child.holdinghands")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .tint(QuestTheme.landmark)
+                .padding(.horizontal, 24)
+
                 if app.isLoadingBuildings {
                     ProgressView(app.loadMessage)
                         .tint(QuestTheme.accent)
@@ -204,8 +214,11 @@ struct PhotoHomeView: View {
         app.loadMessage = "Reading the photo and matching nearby landmarks…"
         defer { app.isLoadingBuildings = false }
 
-        await refreshAreaLabel()
-        let label = areaLabel.isEmpty ? "Your location" : areaLabel
+        let reverse = try? await GeocoderService.reverse(coordinate: coord)
+        if let reverse {
+            areaLabel = reverse.displayName
+        }
+        let label = reverse?.displayName ?? (areaLabel.isEmpty ? "Your location" : areaLabel)
 
         do {
             let identifier = BuildingPhotoIdentifier(
@@ -215,7 +228,8 @@ struct PhotoHomeView: View {
             let building = try await identifier.identify(
                 image: previewImage,
                 coordinate: coord,
-                areaLabel: label
+                areaLabel: label,
+                locationTags: reverse?.addressTags ?? [:]
             )
             app.buildings = [building]
             app.selectedBuilding = building

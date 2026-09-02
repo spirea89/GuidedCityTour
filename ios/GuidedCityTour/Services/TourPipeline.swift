@@ -179,7 +179,7 @@ struct TourPipeline {
         }
 
         var address: [String: String] = [:]
-        for (k, v) in building.tags where ["city", "addr:city", "addr:street", "addr:housenumber", "tourism", "historic", "amenity", "building", "leisure"].contains(k) {
+        for (k, v) in building.tags where ["address", "city", "addr:city", "addr:street", "addr:housenumber", "addr:postcode", "addr:state", "addr:country", "tourism", "historic", "amenity", "building", "leisure"].contains(k) {
             address[k.replacingOccurrences(of: "addr:", with: "")] = v
         }
 
@@ -231,7 +231,7 @@ struct TourPipeline {
             building.tags["addr:street"],
             building.tags["addr:housenumber"]
         ].compactMap { $0 }.joined(separator: " ")
-        let locationLine = [streetHint, cityHint]
+        let locationLine = building.tags["address"] ?? [streetHint, cityHint]
             .filter { !$0.isEmpty }
             .joined(separator: ", ")
 
@@ -359,13 +359,11 @@ struct TourPipeline {
     /// Keeps a verified claim only when it appears to be about the correct
     /// local place.
     ///
-    /// We use a two-part heuristic (less strict than “city must be in the source”):
-    /// - Accept if ANY source mentions the building city/county/etc (aliases)
-    /// - OR accept if the claim text itself mentions those aliases
+    /// A verified claim must have a usable citation that refers to the expected
+    /// city/county/etc. Model wording alone is not evidence.
     ///
-    /// This prevents the Moreni-vs-Roman failure mode (claim text and/or sources
-    /// mention the wrong city) while allowing more valid results where sources
-    /// might not explicitly include the city name in the title/url.
+    /// This prevents the Moreni-vs-Roman failure mode where results for a
+    /// same-named building in another location were treated as local facts.
     private func enforceLocationIntegrity(_ result: TourResult, building: GameBuilding) -> TourResult {
         let cityAliases = cityAliasSet(building: building)
         guard !cityAliases.isEmpty else { return result }
@@ -375,14 +373,26 @@ struct TourPipeline {
             return cityAliases.contains(where: { combined.contains($0) })
         }
 
+        func isUsableWebSource(_ source: ClaimSource) -> Bool {
+            guard let url = URL(string: source.url),
+                  let scheme = url.scheme?.lowercased(),
+                  scheme == "https" || scheme == "http",
+                  url.host != nil
+            else { return false }
+            return sourceMentionsCity(source)
+        }
+
         func claimMentionsCity(_ claim: FactClaim) -> Bool {
             let text = normalize(claim.text)
             return cityAliases.contains(where: { text.contains($0) })
         }
 
-        // A claim passes if either sources or claim text mention expected city aliases.
         let stillVerified = result.claims.verified.filter { claim in
-            claim.sources.contains(where: { sourceMentionsCity($0) }) || claimMentionsCity(claim)
+            if usesLocalLLM {
+                return claimMentionsCity(claim)
+                    && claim.sources.contains(where: { $0.tier == "local" })
+            }
+            return claim.sources.contains(where: { isUsableWebSource($0) })
         }
         let demoted = result.claims.verified.filter { claim in
             !stillVerified.contains(where: { $0.id == claim.id })
@@ -406,7 +416,7 @@ struct TourPipeline {
         )
 
         let filteredCitations = result.citations.filter { cite in
-            sourceMentionsCity(cite)
+            usesLocalLLM ? cite.tier == "local" : isUsableWebSource(cite)
         }
 
         if stillVerified.isEmpty {

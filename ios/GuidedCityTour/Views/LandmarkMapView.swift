@@ -88,6 +88,12 @@ struct LandmarkMapView: View {
             Text(building.typeLabel.capitalized)
                 .font(.caption)
                 .foregroundStyle(QuestTheme.accent)
+            if !building.formattedAddress.isEmpty {
+                Label(building.formattedAddress, systemImage: "mappin.and.ellipse")
+                    .font(.caption)
+                    .foregroundStyle(QuestTheme.muted)
+                    .lineLimit(2)
+            }
             if !building.whyNotable.isEmpty {
                 Text(building.whyNotable)
                     .font(.footnote)

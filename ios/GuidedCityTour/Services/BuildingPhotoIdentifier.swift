@@ -31,7 +31,8 @@ struct BuildingPhotoIdentifier {
     func identify(
         image: UIImage,
         coordinate: CLLocationCoordinate2D,
-        areaLabel: String
+        areaLabel: String,
+        locationTags: [String: String] = [:]
     ) async throws -> GameBuilding {
         guard let jpeg = Self.jpegData(from: image) else {
             throw BuildingPhotoIdentifierError.noImage
@@ -99,7 +100,7 @@ struct BuildingPhotoIdentifier {
         if let osmId = draft.osmId,
            let osm = osmCandidates.first(where: { $0.id == osmId })
         {
-            return refine(osm: osm, draft: draft, areaLabel: areaLabel)
+            return refine(osm: osm, draft: draft, areaLabel: areaLabel, locationTags: locationTags)
         }
 
         if let matched = PlaceNameMatching.bestOSMMatch(
@@ -108,16 +109,23 @@ struct BuildingPhotoIdentifier {
             center: coordinate,
             radius: nearbyRadius
         ) {
-            return refine(osm: matched, draft: draft, areaLabel: areaLabel)
+            return refine(osm: matched, draft: draft, areaLabel: areaLabel, locationTags: locationTags)
+        }
+
+        guard draft.confidence >= 0.65 else {
+            throw BuildingPhotoIdentifierError.noPlace
         }
 
         // Fall back to the user's GPS for an unnamed/unmatched landmark in the photo.
         let entity = Self.entity(from: draft.type)
         var tags: [String: String] = [
             "name": draft.name,
-            "discovery": "photo",
-            "addr:city": areaLabel
+            "discovery": "photo"
         ]
+        tags.merge(locationTags) { current, _ in current }
+        if tags["addr:city"] == nil, !areaLabel.isEmpty {
+            tags["addr:city"] = areaLabel
+        }
         if !draft.address.isEmpty { tags["address"] = draft.address }
         return GameBuilding(
             id: "photo-\(UUID().uuidString.prefix(8))",
@@ -136,8 +144,14 @@ struct BuildingPhotoIdentifier {
         )
     }
 
-    private func refine(osm: GameBuilding, draft: DraftPlace, areaLabel: String) -> GameBuilding {
+    private func refine(
+        osm: GameBuilding,
+        draft: DraftPlace,
+        areaLabel: String,
+        locationTags: [String: String]
+    ) -> GameBuilding {
         var tags = osm.tags
+        tags.merge(locationTags) { osmValue, _ in osmValue }
         tags["name"] = osm.name
         tags["discovery"] = "photo+osm"
         if tags["addr:city"] == nil, !areaLabel.isEmpty {

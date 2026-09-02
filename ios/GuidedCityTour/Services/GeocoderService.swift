@@ -6,6 +6,23 @@ struct PlaceHit {
     let displayName: String
     let coordinate: CLLocationCoordinate2D
     let city: String
+    let street: String
+    let houseNumber: String
+    let postcode: String
+    let state: String
+    let country: String
+
+    var addressTags: [String: String] {
+        var tags: [String: String] = [:]
+        if !street.isEmpty { tags["addr:street"] = street }
+        if !houseNumber.isEmpty { tags["addr:housenumber"] = houseNumber }
+        if !postcode.isEmpty { tags["addr:postcode"] = postcode }
+        if !city.isEmpty { tags["addr:city"] = city }
+        if !state.isEmpty { tags["addr:state"] = state }
+        if !country.isEmpty { tags["addr:country"] = country }
+        if !displayName.isEmpty { tags["address"] = displayName }
+        return tags
+    }
 }
 
 enum GeocoderService {
@@ -65,7 +82,9 @@ enum GeocoderService {
         let name = props?.name ?? props?.street ?? "Place"
         let parts = [
             props?.name,
+            props?.housenumber,
             props?.street,
+            props?.postcode,
             props?.city ?? props?.town ?? props?.village,
             props?.country
         ].compactMap { $0 }.filter { !$0.isEmpty }
@@ -74,7 +93,12 @@ enum GeocoderService {
             name: name,
             displayName: display,
             coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng),
-            city: props?.city ?? props?.town ?? props?.village ?? ""
+            city: props?.city ?? props?.town ?? props?.village ?? "",
+            street: props?.street ?? "",
+            houseNumber: props?.housenumber ?? "",
+            postcode: props?.postcode ?? "",
+            state: props?.state ?? "",
+            country: props?.country ?? ""
         )
     }
 }
@@ -95,8 +119,11 @@ private struct PhotonGeometry: Decodable {
 private struct PhotonProperties: Decodable {
     let name: String?
     let street: String?
+    let housenumber: String?
+    let postcode: String?
     let city: String?
     let town: String?
     let village: String?
     let country: String?
+    let state: String?
 }

@@ -81,6 +81,22 @@ struct GameBuilding: Identifiable, Hashable {
     var wikipedia: String? { tags["wikipedia"] }
     var wikidata: String? { tags["wikidata"] }
 
+    var formattedAddress: String {
+        if let address = tags["address"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !address.isEmpty
+        {
+            return address
+        }
+        let street = [tags["addr:street"], tags["addr:housenumber"]]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        return [street, tags["addr:postcode"], tags["addr:city"], tags["addr:country"]]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+    }
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }

@@ -56,6 +56,11 @@ struct BuildingHistoryView: View {
             Text(building.entityType.displayLabel + " · " + building.typeLabel)
                 .font(.subheadline)
                 .foregroundStyle(QuestTheme.accent)
+            if !building.formattedAddress.isEmpty {
+                Label(building.formattedAddress, systemImage: "mappin.and.ellipse")
+                    .font(.caption)
+                    .foregroundStyle(QuestTheme.muted)
+            }
             Text("History uses the grounded research pipeline — verified claims only.")
                 .font(.caption)
                 .foregroundStyle(QuestTheme.muted)
@@ -156,16 +161,18 @@ struct BuildingHistoryView: View {
             "interesting_facts": "Interesting facts",
             "today": "Today"
         ]
-        ForEach(order, id: \.self) { key in
-            if let section = result.narration.sections[key], !section.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(titles[key] ?? key)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(QuestTheme.accent)
-                        .textCase(.uppercase)
-                    Text(section)
-                        .font(.callout)
-                        .lineSpacing(3)
+        if !settings.kidsMode {
+            ForEach(order, id: \.self) { key in
+                if let section = result.narration.sections[key], !section.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(titles[key] ?? key)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(QuestTheme.accent)
+                            .textCase(.uppercase)
+                        Text(section)
+                            .font(.callout)
+                            .lineSpacing(3)
+                    }
                 }
             }
         }
